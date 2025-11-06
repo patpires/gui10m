@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cosmic Quest v5</title>
+    <style>
+        body {
+            background: #0a0a1a;
+            color: #00d4ff;
+            font-family: Arial;
+            text-align: center;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #00d4ff;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00aaff;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            gap: 5px;
+            margin: 20px auto;
+            width: fit-content;
+        }
+        .hex {
+            width: 50px;
+            height: 50px;
+            background: #1a3a5a;
+            border: 2px solid #00d4ff;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .hex:hover {
+            background: #2a5a7a;
+        }
+        .hex.valido {
+            background: #00ff41;
+            border-color: #00ff41;
+        }
+        .hex.obstaculo {
+            background: #444;
+            border-color: #666;
+        }
+        .hex.destino {
+            background: #ffbe0b;
+            border-color: #ffbe0b;
+        }
+        .info {
+            padding: 10px;
+            background: rgba(0, 212, 255, 0.2);
+            margin: 10px 0;
+            border-radius: 5px;
+            min-height: 20px;
+        }
+        .status {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background: rgba(131, 56, 236, 0.3);
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .resultado {
+            padding: 20px;
+            background: rgba(0, 212, 255, 0.3);
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 COSMIC QUEST</h1>
+    
+    <div class="info">
+        <p id="mensagem">Bem-vindo! Clique em JOGAR</p>
+    </div>
+
+    <div id="menu">
+        <button onclick="comecarJogo()">JOGAR</button>
+        <button onclick="mostrarAjuda()">AJUDA</button>
+    </div>
+
+    <div id="tela_jogo" style="display:none;">
+        <div class="status">
+            <div>🔵 Você: <span id="pontos">0</span></div>
+            <div>Turno: <span id="turno">VOCÊ</span></div>
+            <div>🔴 IA: <span id="pontos_ia">0</span></div>
+        </div>
+        <div id="tabuleiro" class="board"></div>
+        <button onclick="voltarMenu()">VOLTAR</button>
+    </div>
+
+    <div id="tela_ajuda" style="display:none;">
+        <h2>Como Jogar</h2>
+        <p><strong>OBJETIVO:</strong> Mova suas 3 peças azuis 🔵 até o canto superior direito (⭐)</p>
+        <p><strong>COMO:</strong> Clique em uma peça AZUL, depois em um hexágono VERDE para mover</p>
+        <p><strong>MOVIMENTO:</strong> Cada peça se move 1-3 casas. Rochas 🪨 bloqueiam o caminho!</p>
+        <p><strong>VITÓRIA:</strong> Leve suas 3 peças ao destino antes da IA!</p>
+        <button onclick="voltarMenu()">VOLTAR</button>
+    </div>
+
+    <div id="tela_resultado" style="display:none;">
+        <h1 id="titulo_resultado"></h1>
+        <div class="resultado" id="texto_resultado"></div>
+        <button onclick="comecarJogo()">JOGAR NOVAMENTE</button>
+        <button onclick="voltarMenu()">MENU</button>
+    </div>
+
+    <script>
+        let jogo = {
+            peca_selecionada: null,
+            movimentos_validos: [],
+            pontos_jogador: 0,
+            pontos_ia: 0,
+            turno: 'jogador',
+            pecas: [],
+            hexagons: [],
+            jogo_terminado: false
+        };
+
+        function mostrarMensagem(texto) {
+            document.getElementById('mensagem').textContent = texto;
+        }
+
+        function mostrarAjuda() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('tela_jogo').style.display = 'none';
+            document.getElementById('tela_resultado').style.display = 'none';
+            document.getElementById('tela_ajuda').style.display = 'block';
+        }
+
+        function voltarMenu() {
+            document.getElementById('menu').style.display = 'block';
+            document.getElementById('tela_jogo').style.display = 'none';
+            document.getElementById('tela_resultado').style.display = 'none';
+            document.getElementById('tela_ajuda').style.display = 'none';
+            mostrarMensagem('Bem-vindo! Clique em JOGAR');
+        }
+
+        function comecarJogo() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('tela_jogo').style.display = 'block';
+            document.getElementById('tela_resultado').style.display = 'none';
+            document.getElementById('tela_ajuda').style.display = 'none';
+            
+            jogo.pontos_jogador = 0;
+            jogo.pontos_ia = 0;
+            jogo.turno = 'jogador';
+            jogo.jogo_terminado = false;
+            jogo.peca_selecionada = null;
+            jogo.movimentos_validos = [];
+            
+            criarTabuleiro();
+            criarPecas();
+            mostrarMensagem('✓ Clique em uma peça AZUL para começar!');
+            atualizarUI();
+        }
+
+        function criarTabuleiro() {
+            const tabuleiro = document.getElementById('tabuleiro');
+            tabuleiro.innerHTML = '';
+            jogo.hexagons = [];
+
+            for (let linha = 0; linha < 6; linha++) {
+                for (let coluna = 0; coluna < 8; coluna++) {
+                    const hex = document.createElement('div');
+                    hex.className = 'hex';
+                    hex.id = 'hex-' + linha + '-' + coluna;
+                    
+                    if (ehObstaculo(linha, coluna)) {
+                        hex.classList.add('obstaculo');
+                        hex.textContent = '🪨';
+                    }
+                    
+                    if (ehDestino(linha, coluna)) {
+                        hex.classList.add('destino');
+                        hex.textContent = '⭐';
+                    }
+                    
+                    hex.onclick = function() {
+                        cliqueBotao(linha, coluna);
+                    };
+
+                    tabuleiro.appendChild(hex);
+                    jogo.hexagons.push({
+                        linha: linha,
+                        coluna: coluna,
+                        elemento: hex
+                    });
+                }
+            }
+        }
+
+        function ehObstaculo(linha, coluna) {
+            var obstaculos = [[2,2], [2,5], [3,1], [3,6], [4,3], [1,4]];
+            for (var i = 0; i < obstaculos.length; i++) {
+                if (obstaculos[i][0] === linha && obstaculos[i][1] === coluna) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function ehDestino(linha, coluna) {
+            return linha < 2 && coluna > 5;
+        }
+
+        function criarPecas() {
+            jogo.pecas = [];
+            
+            // PEÇAS DO JOGADOR (canto inferior esquerdo)
+            jogo.pecas.push({linha: 5, coluna: 0, dono: 'jogador', icon: '🔵', id: 'j1'});
+            jogo.pecas.push({linha: 4, coluna: 0, dono: 'jogador', icon: '🔵', id: 'j2'});
+            jogo.pecas.push({linha: 5, coluna: 1, dono: 'jogador', icon: '🔵', id: 'j3'});
+            
+            // PEÇAS DA IA (canto inferior direito - lado oposto)
+            jogo.pecas.push({linha: 5, coluna: 7, dono: 'ia', icon: '🔴', id: 'i1'});
+            jogo.pecas.push({linha: 4, coluna: 7, dono: 'ia', icon: '🔴', id: 'i2'});
+            jogo.pecas.push({linha: 5, coluna: 6, dono: 'ia', icon: '🔴', id: 'i3'});
+            
+            renderizarPecas();
+        }
+
+        function renderizarPecas() {
+            for (var i = 0; i < jogo.hexagons.length; i++) {
+                var h = jogo.hexagons[i];
+                if (!h.elemento.classList.contains('obstaculo') && !h.elemento.classList.contains('destino')) {
+                    h.elemento.textContent = '';
+                }
+            }
+
+            for (var i = 0; i < jogo.pecas.length; i++) {
+                var peca = jogo.pecas[i];
+                var hex = procurarHex(peca.linha, peca.coluna);
+                if (hex) {
+                    hex.textContent = peca.icon;
+                }
+            }
+        }
+
+        function procurarHex(linha, coluna) {
+            for (var i = 0; i < jogo.hexagons.length; i++) {
+                if (jogo.hexagons[i].linha === linha && jogo.hexagons[i].coluna === coluna) {
+                    return jogo.hexagons[i].elemento;
+                }
+            }
+            return null;
+        }
+
+        function procurarPecaEm(linha, coluna) {
+            for (var i = 0; i < jogo.pecas.length; i++) {
+                if (jogo.pecas[i].linha === linha && jogo.pecas[i].coluna === coluna) {
+                    return jogo.pecas[i];
+                }
+            }
+            return null;
+        }
+
+        function cliqueBotao(linha, coluna) {
+            if (jogo.jogo_terminado) return;
+            
+            if (jogo.turno !== 'jogador') {
+                mostrarMensagem('❌ Não é sua vez!');
+                return;
+            }
+
+            var peca = procurarPecaEm(linha, coluna);
+
+            if (peca && peca.dono === 'jogador') {
+                selecionarPeca(peca);
+                return;
+            }
+
+            if (jogo.peca_selecionada && ehMovimentoValido(linha, coluna)) {
+                moverPeca(jogo.peca_selecionada, linha, coluna);
+                return;
+            }
+
+            mostrarMensagem('❌ Movimento inválido!');
+        }
+
+        function selecionarPeca(peca) {
+            jogo.peca_selecionada = peca;
+            jogo.movimentos_validos = obterMovimentosValidos(peca);
+
+            for (var i = 0; i < jogo.hexagons.length; i++) {
+                jogo.hexagons[i].elemento.classList.remove('valido');
+            }
+
+            for (var i = 0; i < jogo.movimentos_validos.length; i++) {
+                var mov = jogo.movimentos_validos[i];
+                var hex = procurarHex(mov.linha, mov.coluna);
+                if (hex && !hex.classList.contains('obstaculo')) {
+                    hex.classList.add('valido');
+                }
+            }
+
+            mostrarMensagem('✓ Peça selecionada! ' + jogo.movimentos_validos.length + ' movimentos');
+        }
+
+        function obterMovimentosValidos(peca) {
+            var movimentos = [];
+            var direcoes = [[0,1], [0,-1], [1,0], [-1,0], [1,-1], [-1,1]];
+
+            for (var distancia = 1; distancia <= 3; distancia++) {
+                for (var d = 0; d < direcoes.length; d++) {
+                    var dir = direcoes[d];
+                    var novaLinha = peca.linha + dir[0] * distancia;
+                    var novaColuna = peca.coluna + dir[1] * distancia;
+
+                    if (novaLinha >= 0 && novaLinha < 6 && novaColuna >= 0 && novaColuna < 8) {
+                        if (!ehObstaculo(novaLinha, novaColuna)) {
+                            movimentos.push({linha: novaLinha, coluna: novaColuna});
+                        }
+                    }
+                }
+            }
+
+            return movimentos;
+        }
+
+        function ehMovimentoValido(linha, coluna) {
+            for (var i = 0; i < jogo.movimentos_validos.length; i++) {
+                if (jogo.movimentos_validos[i].linha === linha && jogo.movimentos_validos[i].coluna === coluna) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function moverPeca(peca, novaLinha, novaColuna) {
+            var capturada = procurarPecaEm(novaLinha, novaColuna);
+            if (capturada && capturada.dono !== peca.dono) {
+                var index = jogo.pecas.indexOf(capturada);
+                if (index > -1) {
+                    jogo.pecas.splice(index, 1);
+                    jogo.pontos_jogador += 100;
+                    mostrarMensagem('🎯 Captura! +100 pontos!');
+                }
+            }
+
+            peca.linha = novaLinha;
+            peca.coluna = novaColuna;
+
+            for (var i = 0; i < jogo.hexagons.length; i++) {
+                jogo.hexagons[i].elemento.classList.remove('valido');
+            }
+            jogo.peca_selecionada = null;
+
+            renderizarPecas();
+
+            if (verificarVitoria()) {
+                return;
+            }
+
+            jogo.turno = 'ia';
+            atualizarUI();
+            mostrarMensagem('🤖 Vez da IA...');
+            setTimeout(turnoIA, 1500);
+        }
+
+        function turnoIA() {
+            if (jogo.jogo_terminado) return;
+            if (jogo.turno !== 'ia') return;
+
+            var pecsIA = [];
+            for (var i = 0; i < jogo.pecas.length; i++) {
+                if (jogo.pecas[i].dono === 'ia') {
+                    pecsIA.push(jogo.pecas[i]);
+                }
+            }
+
+            if (pecsIA.length === 0) {
+                finalizarJogo('vitoria', 'Você capturou todas as peças da IA! 🏆');
+                return;
+            }
+
+            var melhorMovimento = null;
+            var melhorScore = -9999;
+
+            for (var p = 0; p < pecsIA.length; p++) {
+                var peca = pecsIA[p];
+                var movimentos = obterMovimentosValidos(peca);
+
+                for (var m = 0; m < movimentos.length; m++) {
+                    var mov = movimentos[m];
+                    var score = 50 - Math.abs(mov.linha - 0) - Math.abs(mov.coluna - 7);
+
+                    var alvo = procurarPecaEm(mov.linha, mov.coluna);
+                    if (alvo && alvo.dono === 'jogador') {
+                        score += 500;
+                    }
+
+                    if (score > melhorScore) {
+                        melhorScore = score;
+                        melhorMovimento = {peca: peca, linha: mov.linha, coluna: mov.coluna};
+                    }
+                }
+            }
+
+            if (melhorMovimento) {
+                var capturada = procurarPecaEm(melhorMovimento.linha, melhorMovimento.coluna);
+                if (capturada && capturada.dono === 'jogador') {
+                    var index = jogo.pecas.indexOf(capturada);
+                    if (index > -1) {
+                        jogo.pecas.splice(index, 1);
+                        jogo.pontos_ia += 100;
+                    }
+                }
+
+                melhorMovimento.peca.linha = melhorMovimento.linha;
+                melhorMovimento.peca.coluna = melhorMovimento.coluna;
+
+                renderizarPecas();
+
+                if (verificarVitoria()) {
+                    return;
+                }
+            }
+
+            jogo.turno = 'jogador';
+            atualizarUI();
+            mostrarMensagem('✓ Sua vez! Clique em uma peça AZUL');
+        }
+
+        function verificarVitoria() {
+            var pecasJogadorDestino = 0;
+            var pecasIADestino = 0;
+            var pecasJogador = 0;
+            var pecasIA = 0;
+
+            for (var i = 0; i < jogo.pecas.length; i++) {
+                var p = jogo.pecas[i];
+                
+                if (p.dono === 'jogador') {
+                    pecasJogador++;
+                    if (ehDestino(p.linha, p.coluna)) {
+                        pecasJogadorDestino++;
+                    }
+                }
+                
+                if (p.dono === 'ia') {
+                    pecasIA++;
+                    if (ehDestino(p.linha, p.coluna)) {
+                        pecasIADestino++;
+                    }
+                }
+            }
+
+            if (pecasJogadorDestino === 3) {
+                finalizarJogo('vitoria', 'Você conquistou a galáxia! 🏆');
+                return true;
+            }
+
+            if (pecasIADestino === 3) {
+                finalizarJogo('derrota', 'A IA conquistou a galáxia primeiro! 😢');
+                return true;
+            }
+
+            if (pecasJogador === 0) {
+                finalizarJogo('derrota', 'Todas suas peças foram capturadas! 😢');
+                return true;
+            }
+
+            if (pecasIA === 0) {
+                finalizarJogo('vitoria', 'Você capturou todas as peças da IA! 🏆');
+                return true;
+            }
+
+            return false;
+        }
+
+        function finalizarJogo(resultado, mensagem) {
+            jogo.jogo_terminado = true;
+            
+            document.getElementById('tela_jogo').style.display = 'none';
+            document.getElementById('tela_resultado').style.display = 'block';
+
+            if (resultado === 'vitoria') {
+                document.getElementById('titulo_resultado').textContent = '🏆 VITÓRIA!';
+                document.getElementById('titulo_resultado').style.color = '#00ff41';
+            } else {
+                document.getElementById('titulo_resultado').textContent = '😢 DERROTA';
+                document.getElementById('titulo_resultado').style.color = '#ff006e';
+            }
+
+            document.getElementById('texto_resultado').innerHTML = '<strong>' + mensagem + '</strong><br><br>Seus Pontos: ' + jogo.pontos_jogador + '<br>Pontos da IA: ' + jogo.pontos_ia;
+
+            mostrarMensagem('Jogo finalizado!');
+        }
+
+        function atualizarUI() {
+            document.getElementById('pontos').textContent = jogo.pontos_jogador;
+            document.getElementById('pontos_ia').textContent = jogo.pontos_ia;
+            document.getElementById('turno').textContent = jogo.turno === 'jogador' ? 'VOCÊ' : 'IA 🤖';
+        }
+    </script>
+</body>
+</html>
