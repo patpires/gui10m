@@ -1,588 +1,393 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Cosmic Quest v9 - Modo Teste</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tangram Divertido</title>
     <style>
+        /* --- Estilos Gerais --- */
+        :root {
+            --cor-peca: #4a90e2;
+            --cor-peca-borda: #357ABD;
+            --cor-tabuleiro: #f0f0f0;
+            --cor-tabuleiro-sombra: rgba(0, 0, 0, 0.1);
+            --cor-fundo: #f8f9fa;
+            --cor-texto: #333;
+            --cor-sucesso: #28a745;
+            --cor-falha: #dc3545;
+        }
+
         body {
-            background: #0a0a1a;
-            color: #00d4ff;
-            font-family: Arial;
-            text-align: center;
-            padding: 20px;
-        }
-        button {
-            padding: 10px 20px;
-            margin: 5px;
-            background: #00d4ff;
-            color: black;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover {
-            background: #00aaff;
-        }
-        .board {
-            display: grid;
-            grid-template-columns: repeat(8, 50px);
-            gap: 5px;
-            margin: 20px auto;
-            width: fit-content;
-        }
-        .hex {
-            width: 50px;
-            height: 50px;
-            background: #1a3a5a;
-            border: 2px solid #00d4ff;
-            border-radius: 4px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
-            align-items: center;
             justify-content: center;
-            cursor: pointer;
-            font-size: 20px;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--cor-fundo);
+            color: var(--cor-texto);
+            overflow: hidden;
+        }
+
+        /* --- Layout Principal --- */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-header {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-header h1 {
+            margin: 0;
+            color: var(--cor-peca);
+        }
+
+        .timer {
+            font-size: 1.5em;
             font-weight: bold;
         }
-        .hex:hover {
-            background: #2a5a7a;
-        }
-        .hex.valido {
-            background: #00ff41;
-            border-color: #00ff41;
-        }
-        .hex.obstaculo {
-            background: #444;
-            border-color: #666;
-        }
-        .hex.destino {
-            background: #ffbe0b;
-            border-color: #ffbe0b;
-        }
-        .info {
-            padding: 10px;
-            background: rgba(0, 212, 255, 0.2);
-            margin: 10px 0;
-            border-radius: 5px;
-            min-height: 20px;
-        }
-        .status {
+
+        .game-area {
             display: flex;
-            justify-content: space-around;
-            padding: 10px;
-            background: rgba(131, 56, 236, 0.3);
-            border-radius: 5px;
-            margin: 10px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            width: 100%;
         }
-        .resultado {
-            padding: 20px;
-            background: rgba(0, 212, 255, 0.3);
-            border-radius: 5px;
-            margin: 20px 0;
-            font-size: 18px;
+
+        /* --- Tabuleiro e Peças --- */
+        #tangram-board, #pieces-container {
+            width: 300px;
+            height: 300px;
+            position: relative;
         }
-        .tutorial {
-            background: rgba(0, 212, 255, 0.1);
-            padding: 15px;
-            border-left: 4px solid #00d4ff;
-            border-radius: 5px;
-            margin: 10px 0;
-            text-align: left;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+
+        #tangram-board {
+            background-color: var(--cor-tabuleiro);
+            box-shadow: 0 4px 8px var(--cor-tabuleiro-sombra);
+            border-radius: 8px;
         }
-        .tutorial h3 {
-            color: #00ff41;
+
+        #pieces-container {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+        }
+
+        .target-slot {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .target-slot svg {
+            width: 100%;
+            height: 100%;
+            fill: none;
+            stroke: #d0d0d0;
+            stroke-width: 2;
+            stroke-dasharray: 4;
+        }
+
+        .piece {
+            position: absolute;
+            width: 300px; /* Base size, transforms will adjust */
+            height: 300px;
+            cursor: grab;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .piece svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--cor-peca);
+            stroke: var(--cor-peca-borda);
+            stroke-width: 2;
+            filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.2));
+        }
+
+        .piece.dragging {
+            cursor: grabbing;
+            opacity: 0.6;
+            transform: scale(1.1);
+            z-index: 1000;
+        }
+        
+        .piece.placed {
+            cursor: default;
+            opacity: 1;
+            pointer-events: none; /* Impede novos arrastos */
+        }
+        
+        .piece.placed svg {
+             fill: var(--cor-sucesso);
+             stroke: darken(var(--cor-sucesso), 10%);
+        }
+
+        /* --- Modal de Fim de Jogo --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .modal-content h2 {
             margin-top: 0;
         }
-        .tutorial ol {
-            margin: 10px 0;
+
+        #win-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 15px 0;
         }
-        .tutorial li {
-            margin: 5px 0;
+
+        #play-again-btn {
+            background-color: var(--cor-peca);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
         }
+
+        #play-again-btn:hover {
+            background-color: var(--cor-peca-borda);
+        }
+
+        /* --- Responsividade --- */
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #tangram-board, #pieces-container {
+                width: 250px;
+                height: 250px;
+            }
+
+            .piece {
+                width: 250px;
+                height: 250px;
+            }
+            .game-header h1 {
+                font-size: 1.8em;
+            }
+        }
+
     </style>
 </head>
 <body>
-    <h1>🚀 COSMIC QUEST - MODO TESTE</h1>
-    
-    <div class="info">
-        <p id="mensagem">Bem-vindo! Clique em JOGAR</p>
+
+    <div class="game-container">
+        <header class="game-header">
+            <h1>Monte o Tangram!</h1>
+            <p>Tempo: <span id="timer" class="timer">0s</span> / 120s</p>
+        </header>
+
+        <main class="game-area">
+            <div id="tangram-board">
+                <!-- Slots de destino para as peças -->
+                <div class="target-slot" data-id="1"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 50,50 0,100"/></svg></div>
+                <div class="target-slot" data-id="2"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 100,0 50,50"/></svg></div>
+                <div class="target-slot" data-id="3"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,100 50,50 100,100"/></svg></div>
+                <div class="target-slot" data-id="4"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,50 75,25 100,50 75,75"/></svg></div>
+                <div class="target-slot" data-id="5"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="100,0 100,50 75,25"/></svg></div>
+                <div class="target-slot" data-id="6"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,50 75,75 25,75"/></svg></div>
+                <div class="target-slot" data-id="7"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="100,50 100,100 75,75"/></svg></div>
+            </div>
+
+            <div id="pieces-container">
+                <!-- Peças arrastáveis -->
+                <div class="piece" draggable="true" data-id="1"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 50,50 0,100"/></svg></div>
+                <div class="piece" draggable="true" data-id="2"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 100,0 50,50"/></svg></div>
+                <div class="piece" draggable="true" data-id="3"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,100 50,50 100,100"/></svg></div>
+                <div class="piece" draggable="true" data-id="4"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,50 75,25 100,50 75,75"/></svg></div>
+                <div class="piece" draggable="true" data-id="5"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="100,0 100,50 75,25"/></svg></div>
+                <div class="piece" draggable="true" data-id="6"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,50 75,75 25,75"/></svg></div>
+                <div class="piece" draggable="true" data-id="7"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="100,50 100,100 75,75"/></svg></div>
+            </div>
+        </main>
     </div>
 
-    <div id="menu">
-        <button onclick="comecarJogo()">JOGAR</button>
-        <button onclick="mostrarTutorial()">📖 GUIA DE VITÓRIA</button>
-    </div>
-
-    <div id="tela_tutorial" style="display:none;">
-        <h2>📖 GUIA PASSO A PASSO PARA GANHAR</h2>
-        <div class="tutorial">
-            <h3>✓ MOVIMENTO 1 - PEÇA AZUL 1:</h3>
-            <ol>
-                <li>Clique na peça azul 🔵 que está em <strong>BAIXO À ESQUERDA (linha 5, coluna 0)</strong></li>
-                <li>Clique no hexágono VERDE que está <strong>3 casas acima</strong> (linha 2, coluna 0)</li>
-                <li>Ganhe +500 pontos ao chegar no destino!</li>
-            </ol>
+    <!-- Modal de Fim de Jogo -->
+    <div id="end-game-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title"></h2>
+            <p id="modal-message"></p>
+            <img id="win-image" src="" alt="Surpresa!" style="display:none;">
+            <button id="play-again-btn">Jogar Novamente</button>
         </div>
-
-        <div class="tutorial">
-            <h3>✓ MOVIMENTO 2 - PEÇA AZUL 2:</h3>
-            <ol>
-                <li>Clique na peça azul 🔵 que está <strong>à esquerda (linha 4, coluna 0)</strong></li>
-                <li>Clique no hexágono VERDE que está <strong>3 casas acima e 1 para direita</strong> (linha 1, coluna 1)</li>
-                <li>Ganhe +500 pontos ao chegar no destino!</li>
-            </ol>
-        </div>
-
-        <div class="tutorial">
-            <h3>✓ MOVIMENTO 3 - PEÇA AZUL 3:</h3>
-            <ol>
-                <li>Clique na peça azul 🔵 que está <strong>embaixo (linha 5, coluna 1)</strong></li>
-                <li>Clique no hexágono VERDE que está <strong>3 casas acima e 1 para direita</strong> (linha 2, coluna 2)</li>
-                <li>Ganhe +500 pontos ao chegar no destino!</li>
-            </ol>
-        </div>
-
-        <div class="tutorial">
-            <h3>🎯 RESULTADO FINAL:</h3>
-            <p>Você terá <strong>3 peças no destino</strong> e <strong>1500 pontos</strong> = <strong>🏆 VITÓRIA!</strong></p>
-        </div>
-
-        <button onclick="comecarJogo()" style="width: 200px; padding: 15px; margin-top: 20px; font-size: 16px;">COMEÇAR JOGO</button>
-        <button onclick="voltarMenu()" style="width: 200px;">VOLTAR</button>
     </div>
 
-    <div id="tela_jogo" style="display:none;">
-        <div class="status">
-            <div>🔵 Você: <span id="pontos">0</span> | ✅ <span id="vencidas_jogador">0</span>/3</div>
-            <div>Turno: <span id="turno">VOCÊ</span></div>
-            <div>🔴 IA: <span id="pontos_ia">0</span> | ✅ <span id="vencidas_ia">0</span>/3</div>
-        </div>
-        <div id="tabuleiro" class="board"></div>
-        <button onclick="voltarMenu()">VOLTAR</button>
-    </div>
-
-    <div id="tela_ajuda" style="display:none;">
-        <h2>Como Jogar</h2>
-        <p><strong>OBJETIVO:</strong> Mova suas 3 peças azuis 🔵 até o canto superior direito (⭐)</p>
-        <p><strong>COMO:</strong> Clique em uma peça AZUL, depois em um hexágono VERDE para mover</p>
-        <p><strong>MOVIMENTO:</strong> Cada peça se move 1-3 casas. Rochas 🪨 bloqueiam o caminho!</p>
-        <p><strong>VITÓRIA:</strong> Leve suas 3 peças diferentes ao destino antes da IA!</p>
-        <p><strong>PEÇAS NA ESTRELA:</strong> Quando sua peça chegar à estrela, ela fica lá protegida! (⭐🔵)</p>
-        <button onclick="voltarMenu()">VOLTAR</button>
-    </div>
-
-    <div id="tela_resultado" style="display:none;">
-        <h1 id="titulo_resultado"></h1>
-        <div class="resultado" id="texto_resultado"></div>
-        <button onclick="comecarJogo()">JOGAR NOVAMENTE</button>
-        <button onclick="voltarMenu()">MENU</button>
-    </div>
 
     <script>
-        let jogo = {
-            peca_selecionada: null,
-            movimentos_validos: [],
-            pontos_jogador: 0,
-            pontos_ia: 0,
-            turno: 'jogador',
-            pecas: [],
-            hexagons: [],
-            jogo_terminado: false,
-            pecas_jogador_vencidas: 0,
-            pecas_ia_vencidas: 0
-        };
+        document.addEventListener('DOMContentLoaded', () => {
+            const pieces = document.querySelectorAll('.piece');
+            const targets = document.querySelectorAll('.target-slot');
+            const piecesContainer = document.getElementById('pieces-container');
+            const timerEl = document.getElementById('timer');
+            const modal = document.getElementById('end-game-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const winImage = document.getElementById('win-image');
+            const playAgainBtn = document.getElementById('play-again-btn');
 
-        function mostrarMensagem(texto) {
-            document.getElementById('mensagem').textContent = texto;
-        }
+            const TIME_LIMIT_SECONDS = 120;
+            const TOTAL_PIECES = 7;
+            let placedPiecesCount = 0;
+            let timerInterval;
+            let secondsPassed = 0;
+            let gameActive = false;
 
-        function mostrarTutorial() {
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById('tela_tutorial').style.display = 'block';
-        }
+            function startGame() {
+                gameActive = true;
+                placedPiecesCount = 0;
+                secondsPassed = 0;
+                modal.style.display = 'none';
+                
+                clearInterval(timerInterval);
+                updateTimerDisplay();
 
-        function voltarMenu() {
-            document.getElementById('menu').style.display = 'block';
-            document.getElementById('tela_jogo').style.display = 'none';
-            document.getElementById('tela_tutorial').style.display = 'none';
-            document.getElementById('tela_resultado').style.display = 'none';
-            document.getElementById('tela_ajuda').style.display = 'none';
-            mostrarMensagem('Bem-vindo! Clique em JOGAR');
-        }
-
-        function comecarJogo() {
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById('tela_jogo').style.display = 'block';
-            document.getElementById('tela_tutorial').style.display = 'none';
-            document.getElementById('tela_resultado').style.display = 'none';
-            document.getElementById('tela_ajuda').style.display = 'none';
-            
-            jogo.pontos_jogador = 0;
-            jogo.pontos_ia = 0;
-            jogo.turno = 'jogador';
-            jogo.jogo_terminado = false;
-            jogo.peca_selecionada = null;
-            jogo.movimentos_validos = [];
-            jogo.pecas_jogador_vencidas = 0;
-            jogo.pecas_ia_vencidas = 0;
-            
-            criarTabuleiro();
-            criarPecas();
-            mostrarMensagem('✓ Clique na PRIMEIRA peça azul (linha 5, coluna 0) para começar!');
-            atualizarUI();
-        }
-
-        function criarTabuleiro() {
-            const tabuleiro = document.getElementById('tabuleiro');
-            tabuleiro.innerHTML = '';
-            jogo.hexagons = [];
-
-            for (let linha = 0; linha < 6; linha++) {
-                for (let coluna = 0; coluna < 8; coluna++) {
-                    const hex = document.createElement('div');
-                    hex.className = 'hex';
-                    hex.id = 'hex-' + linha + '-' + coluna;
+                // Resetar e embaralhar peças
+                pieces.forEach(piece => {
+                    piece.classList.remove('placed');
+                    piece.draggable = true;
                     
-                    if (ehObstaculo(linha, coluna)) {
-                        hex.classList.add('obstaculo');
-                        hex.textContent = '🪨';
-                    } else if (ehDestino(linha, coluna)) {
-                        hex.classList.add('destino');
-                        hex.textContent = '⭐';
-                    }
+                    const containerRect = piecesContainer.getBoundingClientRect();
+                    // Limita a posição para não sair do contêiner
+                    const randomX = Math.random() * (containerRect.width - piece.clientWidth);
+                    const randomY = Math.random() * (containerRect.height - piece.clientHeight);
                     
-                    hex.onclick = function() {
-                        cliqueBotao(linha, coluna);
-                    };
+                    piece.style.top = `${randomY}px`;
+                    piece.style.left = `${randomX}px`;
+                });
 
-                    tabuleiro.appendChild(hex);
-                    jogo.hexagons.push({
-                        linha: linha,
-                        coluna: coluna,
-                        elemento: hex
-                    });
+                timerInterval = setInterval(updateTimer, 1000);
+            }
+
+            function updateTimer() {
+                secondsPassed++;
+                updateTimerDisplay();
+
+                if (secondsPassed >= TIME_LIMIT_SECONDS) {
+                    endGame(false); // Perdeu por tempo
                 }
             }
-        }
-
-        function ehObstaculo(linha, coluna) {
-            var obstaculos = [[2,2], [2,5], [3,1], [3,6], [4,3], [1,4]];
-            for (var i = 0; i < obstaculos.length; i++) {
-                if (obstaculos[i][0] === linha && obstaculos[i][1] === coluna) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function ehDestino(linha, coluna) {
-            return linha < 2 && coluna > 5;
-        }
-
-        function criarPecas() {
-            jogo.pecas = [];
             
-            jogo.pecas.push({id: 'j1', linha: 5, coluna: 0, dono: 'jogador', protegida: false});
-            jogo.pecas.push({id: 'j2', linha: 4, coluna: 0, dono: 'jogador', protegida: false});
-            jogo.pecas.push({id: 'j3', linha: 5, coluna: 1, dono: 'jogador', protegida: false});
-            
-            jogo.pecas.push({id: 'i1', linha: 5, coluna: 7, dono: 'ia', protegida: false});
-            jogo.pecas.push({id: 'i2', linha: 4, coluna: 7, dono: 'ia', protegida: false});
-            jogo.pecas.push({id: 'i3', linha: 5, coluna: 6, dono: 'ia', protegida: false});
-            
-            renderizarPecas();
-        }
-
-        function renderizarPecas() {
-            for (var i = 0; i < jogo.hexagons.length; i++) {
-                var h = jogo.hexagons[i];
-                if (!h.elemento.classList.contains('obstaculo')) {
-                    if (h.elemento.classList.contains('destino')) {
-                        h.elemento.textContent = '⭐';
-                    } else {
-                        h.elemento.textContent = '';
-                    }
-                }
+            function updateTimerDisplay() {
+                timerEl.textContent = `${secondsPassed}s`;
             }
 
-            for (var i = 0; i < jogo.pecas.length; i++) {
-                var peca = jogo.pecas[i];
-                var hex = procurarHex(peca.linha, peca.coluna);
-                if (hex) {
-                    var emoji = peca.dono === 'jogador' ? '🔵' : '🔴';
-                    
-                    if (ehDestino(peca.linha, peca.coluna)) {
-                        hex.textContent = '⭐' + emoji;
-                    } else {
-                        hex.textContent = emoji;
-                    }
-                }
-            }
-        }
-
-        function procurarHex(linha, coluna) {
-            for (var i = 0; i < jogo.hexagons.length; i++) {
-                if (jogo.hexagons[i].linha === linha && jogo.hexagons[i].coluna === coluna) {
-                    return jogo.hexagons[i].elemento;
-                }
-            }
-            return null;
-        }
-
-        function procurarPecaEm(linha, coluna) {
-            for (var i = 0; i < jogo.pecas.length; i++) {
-                var p = jogo.pecas[i];
-                if (p.linha === linha && p.coluna === coluna) {
-                    return p;
-                }
-            }
-            return null;
-        }
-
-        function cliqueBotao(linha, coluna) {
-            if (jogo.jogo_terminado) return;
-            
-            if (jogo.turno !== 'jogador') {
-                mostrarMensagem('❌ Não é sua vez!');
-                return;
+            function handleDragStart(e) {
+                if (!gameActive) return;
+                e.dataTransfer.setData('text/plain', e.target.dataset.id);
+                e.target.classList.add('dragging');
             }
 
-            var peca = procurarPecaEm(linha, coluna);
-
-            if (peca && peca.dono === 'jogador') {
-                selecionarPeca(peca);
-                return;
+            function handleDragEnd(e) {
+                e.target.classList.remove('dragging');
             }
 
-            if (jogo.peca_selecionada && ehMovimentoValido(linha, coluna)) {
-                moverPeca(jogo.peca_selecionada, linha, coluna);
-                return;
+            function handleDragOver(e) {
+                e.preventDefault(); // Necessário para permitir o drop
             }
 
-            mostrarMensagem('❌ Movimento inválido!');
-        }
+            function handleDrop(e) {
+                e.preventDefault();
+                if (!gameActive) return;
 
-        function selecionarPeca(peca) {
-            jogo.peca_selecionada = peca;
-            jogo.movimentos_validos = obterMovimentosValidos(peca);
+                const pieceId = e.dataTransfer.getData('text/plain');
+                const targetId = e.currentTarget.dataset.id;
+                
+                if (pieceId === targetId) {
+                    const piece = document.querySelector(`.piece[data-id='${pieceId}']`);
+                    const target = e.currentTarget;
 
-            for (var i = 0; i < jogo.hexagons.length; i++) {
-                jogo.hexagons[i].elemento.classList.remove('valido');
-            }
+                    if (piece && !piece.classList.contains('placed')) {
+                        // "Trava" a peça no lugar
+                        piece.style.top = '0';
+                        piece.style.left = '0';
+                        target.appendChild(piece); // Move a peça para dentro do seu slot
+                        
+                        piece.classList.add('placed');
+                        piece.draggable = false;
+                        placedPiecesCount++;
 
-            for (var i = 0; i < jogo.movimentos_validos.length; i++) {
-                var mov = jogo.movimentos_validos[i];
-                var hex = procurarHex(mov.linha, mov.coluna);
-                if (hex && !hex.classList.contains('obstaculo')) {
-                    hex.classList.add('valido');
-                }
-            }
-
-            mostrarMensagem('✓ Peça ' + peca.id + ' selecionada! Clique em um hexágono VERDE');
-        }
-
-        function obterMovimentosValidos(peca) {
-            var movimentos = [];
-            var direcoes = [[0,1], [0,-1], [1,0], [-1,0], [1,-1], [-1,1]];
-
-            for (var distancia = 1; distancia <= 3; distancia++) {
-                for (var d = 0; d < direcoes.length; d++) {
-                    var dir = direcoes[d];
-                    var novaLinha = peca.linha + dir[0] * distancia;
-                    var novaColuna = peca.coluna + dir[1] * distancia;
-
-                    if (novaLinha >= 0 && novaLinha < 6 && novaColuna >= 0 && novaColuna < 8) {
-                        if (!ehObstaculo(novaLinha, novaColuna)) {
-                            movimentos.push({linha: novaLinha, coluna: novaColuna});
+                        if (placedPiecesCount === TOTAL_PIECES) {
+                            endGame(true); // Ganhou
                         }
                     }
                 }
             }
 
-            return movimentos;
-        }
+            function endGame(isWin) {
+                gameActive = false;
+                clearInterval(timerInterval);
 
-        function ehMovimentoValido(linha, coluna) {
-            for (var i = 0; i < jogo.movimentos_validos.length; i++) {
-                if (jogo.movimentos_validos[i].linha === linha && jogo.movimentos_validos[i].coluna === coluna) {
-                    return true;
+                if (isWin) {
+                    modalTitle.textContent = '🎉 Parabéns! 🎉';
+                    modalMessage.textContent = `Você montou o Tangram em ${secondsPassed} segundos!`;
+                    modalTitle.style.color = 'var(--cor-sucesso)';
+                    // IMPORTANTE: Substitua esta URL pela da sua imagem!
+                    winImage.src = 'https://i.imgur.com/rNnPYwW.png'; 
+                    winImage.style.display = 'block';
+                } else {
+                    modalTitle.textContent = 'Tempo Esgotado!';
+                    modalMessage.textContent = 'Não desanime! A persistência leva à perfeição. Tente novamente!';
+                    modalTitle.style.color = 'var(--cor-falha)';
+                    winImage.style.display = 'none';
                 }
-            }
-            return false;
-        }
-
-        function moverPeca(peca, novaLinha, novaColuna) {
-            var capturada = procurarPecaEm(novaLinha, novaColuna);
-            if (capturada && capturada.dono !== peca.dono && !capturada.protegida) {
-                var index = jogo.pecas.indexOf(capturada);
-                if (index > -1) {
-                    jogo.pecas.splice(index, 1);
-                    jogo.pontos_jogador += 100;
-                    mostrarMensagem('🎯 Captura! +100 pontos!');
-                }
+                
+                modal.style.display = 'flex';
             }
 
-            var estavaNoDestino = ehDestino(peca.linha, peca.coluna);
+            // Adicionar eventos
+            pieces.forEach(piece => {
+                piece.addEventListener('dragstart', handleDragStart);
+                piece.addEventListener('dragend', handleDragEnd);
+            });
 
-            peca.linha = novaLinha;
-            peca.coluna = novaColuna;
+            targets.forEach(target => {
+                target.addEventListener('dragover', handleDragOver);
+                target.addEventListener('drop', handleDrop);
+            });
 
-            if (ehDestino(peca.linha, peca.coluna) && peca.dono === 'jogador' && !estavaNoDestino && !peca.protegida) {
-                peca.protegida = true;
-                jogo.pecas_jogador_vencidas++;
-                jogo.pontos_jogador += 500;
-                mostrarMensagem('⭐ ' + peca.id + ' chegou ao destino! +500 pontos! (' + jogo.pecas_jogador_vencidas + '/3)');
-            }
+            playAgainBtn.addEventListener('click', startGame);
 
-            for (var i = 0; i < jogo.hexagons.length; i++) {
-                jogo.hexagons[i].elemento.classList.remove('valido');
-            }
-            jogo.peca_selecionada = null;
-
-            renderizarPecas();
-
-            if (verificarVitoria()) {
-                return;
-            }
-
-            jogo.turno = 'ia';
-            atualizarUI();
-            mostrarMensagem('🤖 Vez da IA... (IA está lenta deliberadamente para você ver os movimentos)');
-            setTimeout(turnoIA, 2500);
-        }
-
-        function turnoIA() {
-            if (jogo.jogo_terminado) return;
-            if (jogo.turno !== 'ia') return;
-
-            var pecsIA = jogo.pecas.filter(p => p.dono === 'ia');
-
-            if (pecsIA.length === 0) {
-                jogo.turno = 'jogador';
-                atualizarUI();
-                mostrarMensagem('✓ Sua vez!');
-                return;
-            }
-
-            // IA PROPOSITALMENTE LENTA PARA VOCÊ VER OS MOVIMENTOS
-            var melhorMovimento = null;
-            var melhorScore = -9999;
-
-            for (var p = 0; p < pecsIA.length; p++) {
-                var peca = pecsIA[p];
-                var movimentos = obterMovimentosValidos(peca);
-
-                for (var m = 0; m < movimentos.length; m++) {
-                    var mov = movimentos[m];
-                    var score = 50 - Math.abs(mov.linha - 0) - Math.abs(mov.coluna - 7);
-
-                    if (ehDestino(mov.linha, mov.coluna) && !peca.protegida) {
-                        score += 10000;
-                    }
-
-                    var alvo = procurarPecaEm(mov.linha, mov.coluna);
-                    if (alvo && alvo.dono === 'jogador' && !alvo.protegida) {
-                        score += 500;
-                    }
-
-                    if (score > melhorScore) {
-                        melhorScore = score;
-                        melhorMovimento = {peca: peca, linha: mov.linha, coluna: mov.coluna};
-                    }
-                }
-            }
-
-            if (melhorMovimento) {
-                var estavaNoDestino = ehDestino(melhorMovimento.peca.linha, melhorMovimento.peca.coluna);
-
-                var capturada = procurarPecaEm(melhorMovimento.linha, melhorMovimento.coluna);
-                if (capturada && capturada.dono === 'jogador' && !capturada.protegida) {
-                    var index = jogo.pecas.indexOf(capturada);
-                    if (index > -1) {
-                        jogo.pecas.splice(index, 1);
-                        jogo.pontos_ia += 100;
-                        mostrarMensagem('🤖 IA capturou! +100 pontos IA');
-                    }
-                }
-
-                melhorMovimento.peca.linha = melhorMovimento.linha;
-                melhorMovimento.peca.coluna = melhorMovimento.coluna;
-
-                if (ehDestino(melhorMovimento.peca.linha, melhorMovimento.peca.coluna) && !estavaNoDestino && !melhorMovimento.peca.protegida) {
-                    melhorMovimento.peca.protegida = true;
-                    jogo.pecas_ia_vencidas++;
-                    jogo.pontos_ia += 500;
-                    mostrarMensagem('🤖 IA: Uma peça chegou! (' + jogo.pecas_ia_vencidas + '/3)');
-                }
-
-                renderizarPecas();
-
-                if (verificarVitoria()) {
-                    return;
-                }
-            }
-
-            jogo.turno = 'jogador';
-            atualizarUI();
-            mostrarMensagem('✓ Sua vez!');
-        }
-
-        function verificarVitoria() {
-            if (jogo.pecas_jogador_vencidas >= 3) {
-                finalizarJogo('vitoria', 'Você conquistou a galáxia! 🏆');
-                return true;
-            }
-
-            if (jogo.pecas_ia_vencidas >= 3) {
-                finalizarJogo('derrota', 'A IA conquistou a galáxia primeiro! 😢');
-                return true;
-            }
-
-            var pecasJogadorAtivas = jogo.pecas.filter(p => p.dono === 'jogador').length;
-            var pecasIAAtivas = jogo.pecas.filter(p => p.dono === 'ia').length;
-
-            if (pecasJogadorAtivas === 0 && jogo.pecas_jogador_vencidas < 3) {
-                finalizarJogo('derrota', 'Todas suas peças foram capturadas! 😢');
-                return true;
-            }
-
-            if (pecasIAAtivas === 0 && jogo.pecas_ia_vencidas < 3) {
-                finalizarJogo('vitoria', 'Você capturou todas as peças da IA! 🏆');
-                return true;
-            }
-
-            return false;
-        }
-
-        function finalizarJogo(resultado, mensagem) {
-            jogo.jogo_terminado = true;
-            
-            document.getElementById('tela_jogo').style.display = 'none';
-            document.getElementById('tela_resultado').style.display = 'block';
-
-            if (resultado === 'vitoria') {
-                document.getElementById('titulo_resultado').textContent = '🏆 VITÓRIA!';
-                document.getElementById('titulo_resultado').style.color = '#00ff41';
-            } else {
-                document.getElementById('titulo_resultado').textContent = '😢 DERROTA';
-                document.getElementById('titulo_resultado').style.color = '#ff006e';
-            }
-
-            document.getElementById('texto_resultado').innerHTML = '<strong>' + mensagem + '</strong><br><br>Seus Pontos: ' + jogo.pontos_jogador + '<br>Pontos da IA: ' + jogo.pontos_ia;
-
-            mostrarMensagem('Jogo finalizado!');
-        }
-
-        function atualizarUI() {
-            document.getElementById('pontos').textContent = jogo.pontos_jogador;
-            document.getElementById('pontos_ia').textContent = jogo.pontos_ia;
-            document.getElementById('vencidas_jogador').textContent = jogo.pecas_jogador_vencidas;
-            document.getElementById('vencidas_ia').textContent = jogo.pecas_ia_vencidas;
-            document.getElementById('turno').textContent = jogo.turno === 'jogador' ? 'VOCÊ' : 'IA 🤖';
-        }
+            // Iniciar o jogo pela primeira vez
+            startGame();
+        });
     </script>
+
 </body>
 </html>
