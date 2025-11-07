@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Cosmic Quest v8</title>
+    <title>Cosmic Quest v9 - Modo Teste</title>
     <style>
         body {
             background: #0a0a1a;
@@ -81,10 +81,31 @@
             margin: 20px 0;
             font-size: 18px;
         }
+        .tutorial {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 15px;
+            border-left: 4px solid #00d4ff;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: left;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .tutorial h3 {
+            color: #00ff41;
+            margin-top: 0;
+        }
+        .tutorial ol {
+            margin: 10px 0;
+        }
+        .tutorial li {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>🚀 COSMIC QUEST</h1>
+    <h1>🚀 COSMIC QUEST - MODO TESTE</h1>
     
     <div class="info">
         <p id="mensagem">Bem-vindo! Clique em JOGAR</p>
@@ -92,7 +113,45 @@
 
     <div id="menu">
         <button onclick="comecarJogo()">JOGAR</button>
-        <button onclick="mostrarAjuda()">AJUDA</button>
+        <button onclick="mostrarTutorial()">📖 GUIA DE VITÓRIA</button>
+    </div>
+
+    <div id="tela_tutorial" style="display:none;">
+        <h2>📖 GUIA PASSO A PASSO PARA GANHAR</h2>
+        <div class="tutorial">
+            <h3>✓ MOVIMENTO 1 - PEÇA AZUL 1:</h3>
+            <ol>
+                <li>Clique na peça azul 🔵 que está em <strong>BAIXO À ESQUERDA (linha 5, coluna 0)</strong></li>
+                <li>Clique no hexágono VERDE que está <strong>3 casas acima</strong> (linha 2, coluna 0)</li>
+                <li>Ganhe +500 pontos ao chegar no destino!</li>
+            </ol>
+        </div>
+
+        <div class="tutorial">
+            <h3>✓ MOVIMENTO 2 - PEÇA AZUL 2:</h3>
+            <ol>
+                <li>Clique na peça azul 🔵 que está <strong>à esquerda (linha 4, coluna 0)</strong></li>
+                <li>Clique no hexágono VERDE que está <strong>3 casas acima e 1 para direita</strong> (linha 1, coluna 1)</li>
+                <li>Ganhe +500 pontos ao chegar no destino!</li>
+            </ol>
+        </div>
+
+        <div class="tutorial">
+            <h3>✓ MOVIMENTO 3 - PEÇA AZUL 3:</h3>
+            <ol>
+                <li>Clique na peça azul 🔵 que está <strong>embaixo (linha 5, coluna 1)</strong></li>
+                <li>Clique no hexágono VERDE que está <strong>3 casas acima e 1 para direita</strong> (linha 2, coluna 2)</li>
+                <li>Ganhe +500 pontos ao chegar no destino!</li>
+            </ol>
+        </div>
+
+        <div class="tutorial">
+            <h3>🎯 RESULTADO FINAL:</h3>
+            <p>Você terá <strong>3 peças no destino</strong> e <strong>1500 pontos</strong> = <strong>🏆 VITÓRIA!</strong></p>
+        </div>
+
+        <button onclick="comecarJogo()" style="width: 200px; padding: 15px; margin-top: 20px; font-size: 16px;">COMEÇAR JOGO</button>
+        <button onclick="voltarMenu()" style="width: 200px;">VOLTAR</button>
     </div>
 
     <div id="tela_jogo" style="display:none;">
@@ -140,16 +199,15 @@
             document.getElementById('mensagem').textContent = texto;
         }
 
-        function mostrarAjuda() {
+        function mostrarTutorial() {
             document.getElementById('menu').style.display = 'none';
-            document.getElementById('tela_jogo').style.display = 'none';
-            document.getElementById('tela_resultado').style.display = 'none';
-            document.getElementById('tela_ajuda').style.display = 'block';
+            document.getElementById('tela_tutorial').style.display = 'block';
         }
 
         function voltarMenu() {
             document.getElementById('menu').style.display = 'block';
             document.getElementById('tela_jogo').style.display = 'none';
+            document.getElementById('tela_tutorial').style.display = 'none';
             document.getElementById('tela_resultado').style.display = 'none';
             document.getElementById('tela_ajuda').style.display = 'none';
             mostrarMensagem('Bem-vindo! Clique em JOGAR');
@@ -158,6 +216,7 @@
         function comecarJogo() {
             document.getElementById('menu').style.display = 'none';
             document.getElementById('tela_jogo').style.display = 'block';
+            document.getElementById('tela_tutorial').style.display = 'none';
             document.getElementById('tela_resultado').style.display = 'none';
             document.getElementById('tela_ajuda').style.display = 'none';
             
@@ -172,7 +231,7 @@
             
             criarTabuleiro();
             criarPecas();
-            mostrarMensagem('✓ Clique em uma peça AZUL para começar!');
+            mostrarMensagem('✓ Clique na PRIMEIRA peça azul (linha 5, coluna 0) para começar!');
             atualizarUI();
         }
 
@@ -226,12 +285,10 @@
         function criarPecas() {
             jogo.pecas = [];
             
-            // Peças do jogador - com ID único para rastrear
             jogo.pecas.push({id: 'j1', linha: 5, coluna: 0, dono: 'jogador', protegida: false});
             jogo.pecas.push({id: 'j2', linha: 4, coluna: 0, dono: 'jogador', protegida: false});
             jogo.pecas.push({id: 'j3', linha: 5, coluna: 1, dono: 'jogador', protegida: false});
             
-            // Peças da IA - com ID único para rastrear
             jogo.pecas.push({id: 'i1', linha: 5, coluna: 7, dono: 'ia', protegida: false});
             jogo.pecas.push({id: 'i2', linha: 4, coluna: 7, dono: 'ia', protegida: false});
             jogo.pecas.push({id: 'i3', linha: 5, coluna: 6, dono: 'ia', protegida: false});
@@ -240,7 +297,6 @@
         }
 
         function renderizarPecas() {
-            // Limpar tabuleiro (mas manter obstáculos e destino)
             for (var i = 0; i < jogo.hexagons.length; i++) {
                 var h = jogo.hexagons[i];
                 if (!h.elemento.classList.contains('obstaculo')) {
@@ -252,14 +308,12 @@
                 }
             }
 
-            // Desenhar todas as peças
             for (var i = 0; i < jogo.pecas.length; i++) {
                 var peca = jogo.pecas[i];
                 var hex = procurarHex(peca.linha, peca.coluna);
                 if (hex) {
                     var emoji = peca.dono === 'jogador' ? '🔵' : '🔴';
                     
-                    // Se está no destino, mostrar ambos
                     if (ehDestino(peca.linha, peca.coluna)) {
                         hex.textContent = '⭐' + emoji;
                     } else {
@@ -327,7 +381,7 @@
                 }
             }
 
-            mostrarMensagem('✓ Peça selecionada! ' + jogo.movimentos_validos.length + ' movimentos');
+            mostrarMensagem('✓ Peça ' + peca.id + ' selecionada! Clique em um hexágono VERDE');
         }
 
         function obterMovimentosValidos(peca) {
@@ -361,7 +415,6 @@
         }
 
         function moverPeca(peca, novaLinha, novaColuna) {
-            // Verificar captura (só captura peças NÃO protegidas)
             var capturada = procurarPecaEm(novaLinha, novaColuna);
             if (capturada && capturada.dono !== peca.dono && !capturada.protegida) {
                 var index = jogo.pecas.indexOf(capturada);
@@ -372,22 +425,18 @@
                 }
             }
 
-            // Guardar localização antiga ANTES de mover
             var estavaNoDestino = ehDestino(peca.linha, peca.coluna);
 
-            // Mover peça
             peca.linha = novaLinha;
             peca.coluna = novaColuna;
 
-            // Verificar se chegou ao destino (e ainda não estava lá!)
             if (ehDestino(peca.linha, peca.coluna) && peca.dono === 'jogador' && !estavaNoDestino && !peca.protegida) {
                 peca.protegida = true;
                 jogo.pecas_jogador_vencidas++;
                 jogo.pontos_jogador += 500;
-                mostrarMensagem('⭐ Uma peça chegou ao destino! +500 pontos! (' + jogo.pecas_jogador_vencidas + '/3)');
+                mostrarMensagem('⭐ ' + peca.id + ' chegou ao destino! +500 pontos! (' + jogo.pecas_jogador_vencidas + '/3)');
             }
 
-            // Limpar seleção
             for (var i = 0; i < jogo.hexagons.length; i++) {
                 jogo.hexagons[i].elemento.classList.remove('valido');
             }
@@ -401,8 +450,8 @@
 
             jogo.turno = 'ia';
             atualizarUI();
-            mostrarMensagem('🤖 Vez da IA...');
-            setTimeout(turnoIA, 1500);
+            mostrarMensagem('🤖 Vez da IA... (IA está lenta deliberadamente para você ver os movimentos)');
+            setTimeout(turnoIA, 2500);
         }
 
         function turnoIA() {
@@ -414,10 +463,11 @@
             if (pecsIA.length === 0) {
                 jogo.turno = 'jogador';
                 atualizarUI();
-                mostrarMensagem('✓ Sua vez! Clique em uma peça AZUL');
+                mostrarMensagem('✓ Sua vez!');
                 return;
             }
 
+            // IA PROPOSITALMENTE LENTA PARA VOCÊ VER OS MOVIMENTOS
             var melhorMovimento = null;
             var melhorScore = -9999;
 
@@ -429,7 +479,6 @@
                     var mov = movimentos[m];
                     var score = 50 - Math.abs(mov.linha - 0) - Math.abs(mov.coluna - 7);
 
-                    // Bônus GRANDE se chegará ao destino
                     if (ehDestino(mov.linha, mov.coluna) && !peca.protegida) {
                         score += 10000;
                     }
@@ -447,30 +496,26 @@
             }
 
             if (melhorMovimento) {
-                // Guardar se estava no destino ANTES
                 var estavaNoDestino = ehDestino(melhorMovimento.peca.linha, melhorMovimento.peca.coluna);
 
-                // Capturar se houver
                 var capturada = procurarPecaEm(melhorMovimento.linha, melhorMovimento.coluna);
                 if (capturada && capturada.dono === 'jogador' && !capturada.protegida) {
                     var index = jogo.pecas.indexOf(capturada);
                     if (index > -1) {
                         jogo.pecas.splice(index, 1);
                         jogo.pontos_ia += 100;
-                        mostrarMensagem('🤖 IA capturou uma peça! +100 pontos IA');
+                        mostrarMensagem('🤖 IA capturou! +100 pontos IA');
                     }
                 }
 
-                // Mover
                 melhorMovimento.peca.linha = melhorMovimento.linha;
                 melhorMovimento.peca.coluna = melhorMovimento.coluna;
 
-                // Se chegou ao destino e ainda não estava lá
                 if (ehDestino(melhorMovimento.peca.linha, melhorMovimento.peca.coluna) && !estavaNoDestino && !melhorMovimento.peca.protegida) {
                     melhorMovimento.peca.protegida = true;
                     jogo.pecas_ia_vencidas++;
                     jogo.pontos_ia += 500;
-                    mostrarMensagem('🤖 IA: Uma peça chegou ao destino! (' + jogo.pecas_ia_vencidas + '/3)');
+                    mostrarMensagem('🤖 IA: Uma peça chegou! (' + jogo.pecas_ia_vencidas + '/3)');
                 }
 
                 renderizarPecas();
@@ -482,7 +527,7 @@
 
             jogo.turno = 'jogador';
             atualizarUI();
-            mostrarMensagem('✓ Sua vez! Clique em uma peça AZUL');
+            mostrarMensagem('✓ Sua vez!');
         }
 
         function verificarVitoria() {
