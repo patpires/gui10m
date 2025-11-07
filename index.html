@@ -2,412 +2,479 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tangram Divertido</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tangram Mágico</title>
     <style>
         :root {
-            --piece-color: #3498db;
-            --target-color: #ecf0f1;
-            --background-color: #f0f5f9;
-            --text-color: #2c3e50;
-            --accent-color: #2ecc71;
+            --board-bg: #e0f7fa;
+            --piece-color: #0077c2;
+            --silhouette-color: #b3e5fc;
+            --font-color: #004d40;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+            --win-bg: rgba(255, 255, 255, 0.95);
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            background-color: var(--background-color);
-            color: var(--text-color);
+            background-color: #f0f2f5;
+            color: var(--font-color);
             overflow: hidden;
-            user-select: none; /* Impede a seleção de texto ao arrastar */
         }
 
-        #game-container {
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+        }
+
+        .info-bar {
+            width: 100%;
+            max-width: 820px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: #fff;
+            padding: 10px 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px var(--shadow-color);
+            box-sizing: border-box;
+        }
+
+        .timer, .instructions {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .instructions-mobile {
+            display: none; /* Oculto por padrão */
+        }
+
+        .game-board {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            align-items: flex-start;
             gap: 20px;
-            padding: 20px;
             width: 100%;
-            max-width: 1200px;
         }
 
-        #puzzle-area, #pieces-area {
-            padding: 10px;
-            border-radius: 15px;
-            background-color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-
-        #puzzle-area {
-            flex: 1;
-            min-width: 320px;
-            max-width: 500px;
-        }
-
-        #pieces-area {
-            flex: 1;
-            min-width: 320px;
-            max-width: 500px;
-            min-height: 400px; /* Garante espaço para peças embaralhadas */
-            position: relative; /* Para posicionar as peças dentro dela */
-        }
-        
-        #info-panel {
-            width: 100%;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        
-        #timer, #win-message {
-            font-size: 1.5em;
-            font-weight: bold;
-        }
-
-        #tangram-board {
+        .puzzle-area, .pieces-area {
+            width: 400px;
+            height: 400px;
+            background-color: var(--board-bg);
+            border-radius: 12px;
+            box-shadow: inset 0 0 10px var(--shadow-color);
             position: relative;
-            width: 300px;
-            height: 300px;
-            margin: 20px auto;
         }
-        
-        .target, .piece {
+
+        .pieces-area-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .piece, .target {
             position: absolute;
-            width: 0;
-            height: 0;
-            background-color: var(--piece-color);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 200px; /* Tamanho base, será escalado */
+            height: 100px;
+            cursor: grab;
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease;
+            touch-action: none; /* Essencial para evitar zoom/scroll no celular */
+            user-select: none; /* Evita selecionar o 'texto' do SVG */
+        }
+
+        .piece svg, .target svg {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
 
         .target {
-            background-color: var(--target-color);
-            border: 2px dashed #bdc3c7;
+            z-index: 1;
+            cursor: default;
         }
+        .target path { fill: var(--silhouette-color); }
 
-        .piece {
-            cursor: grab;
-            z-index: 10;
-        }
-        
+        .piece { z-index: 10; }
+        .piece path { fill: var(--piece-color); }
+        .piece:hover { transform: scale(1.05); }
+
         .piece.dragging {
             cursor: grabbing;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            opacity: 0.7;
             transform: scale(1.1);
-            z-index: 20;
+            z-index: 100;
+            box-shadow: 0 10px 20px var(--shadow-color);
         }
 
-        .piece.placed {
-            opacity: 0.9;
-            pointer-events: none; /* Não pode mais ser arrastada */
+        .piece.locked {
+            z-index: 5;
+            opacity: 1;
+            cursor: default;
+            pointer-events: none; /* Desativa interação após encaixar */
         }
 
-        /* Definição das formas do Tangram (Triângulos e Quadriláteros) */
-        .triangle { border-style: solid; background-color: transparent; }
-        
-        #t1, #target-t1 { border-width: 0 75px 75px 75px; border-color: transparent transparent var(--piece-color) transparent; top: 0; left: 75px; }
-        #t2, #target-t2 { border-width: 0 75px 75px 75px; border-color: transparent transparent var(--piece-color) transparent; top: 150px; left: 75px; }
-        #t3, #target-t3 { border-width: 0 37.5px 37.5px 37.5px; border-color: transparent transparent var(--piece-color) transparent; top: 75px; left: 112.5px;}
-        #t4, #target-t4 { border-width: 75px 0 0 75px; border-color: var(--piece-color) transparent transparent transparent; top: 150px; left: 0;}
-        #t5, #target-t5 { border-width: 75px 75px 0 0; border-color: var(--piece-color) transparent transparent transparent; top: 75px; left: 150px;}
-        
-        #q1, #target-q1 { width: 75px; height: 75px; top: 75px; left: 37.5px; transform: rotate(45deg); transform-origin: center; }
-        #p1, #target-p1 { width: 107px; height: 53px; top: 200px; left: 100px; background-color: var(--piece-color); clip-path: polygon(25% 0, 100% 0, 75% 100%, 0 100%); transform: rotate(45deg); }
-        
-        /* Corrigindo a cor da borda para as silhuetas */
-        #target-t1 { border-color: transparent transparent var(--target-color) transparent; }
-        #target-t2 { border-color: transparent transparent var(--target-color) transparent; }
-        #target-t3 { border-color: transparent transparent var(--target-color) transparent; }
-        #target-t4 { border-color: var(--target-color) transparent transparent transparent; }
-        #target-t5 { border-color: var(--target-color) transparent transparent transparent; }
-        #target-q1, #target-p1 { background-color: var(--target-color); }
-
-        #modal {
+        .modal {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.6);
-            display: none;
             justify-content: center;
             align-items: center;
-            z-index: 100;
-            flex-direction: column;
-            text-align: center;
+            z-index: 200;
         }
 
-        #modal-content {
-            background: white;
-            padding: 30px;
+        .modal-content {
+            background: var(--win-bg);
+            padding: 20px 30px;
             border-radius: 15px;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.5s ease;
         }
 
-        #modal h2 {
-            font-size: 2em;
-            color: var(--accent-color);
-            margin-top: 0;
-        }
-        
-        #modal p { font-size: 1.2em; }
-
-        #final-image {
-            width: 250px;
-            height: 250px;
-            object-fit: cover;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-        
-        #play-again-btn {
-            padding: 12px 25px;
-            font-size: 1.1em;
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-            background-color: var(--accent-color);
+        .modal-content h2 { font-size: 2em; color: var(--piece-color); }
+        .modal-content p { font-size: 1.2em; }
+        .modal-content button {
+            background-color: var(--piece-color);
             color: white;
-            transition: background-color 0.3s;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.2s;
         }
-        #play-again-btn:hover { background-color: #27ae60; }
+        .modal-content button:hover { background-color: #005a9e; }
+        
+        .win-image {
+            width: 200px;
+            height: 200px;
+            margin: 15px auto;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid var(--piece-color);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Responsividade */
+        @media (max-width: 840px) {
+            .puzzle-area, .pieces-area {
+                width: 350px;
+                height: 350px;
+            }
+            .instructions-mobile { display: block; }
+            .instructions-desktop { display: none; }
+        }
+
+        @media (max-width: 720px) {
+            .game-board { flex-direction: column; align-items: center; }
+            .puzzle-area, .pieces-area { width: 90vw; max-width: 320px; height: 90vw; max-height: 320px; }
+            .info-bar { flex-direction: column; gap: 10px; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <div id="puzzle-area">
-            <div id="info-panel">
-                <div id="timer">Tempo: 00:00</div>
-            </div>
-            <div id="tangram-board">
-                <!-- Silhuetas -->
-                <div class="target" id="target-t1"></div>
-                <div class="target" id="target-t2"></div>
-                <div class="target" id="target-t3"></div>
-                <div class="target" id="target-t4"></div>
-                <div class="target" id="target-t5"></div>
-                <div class="target" id="target-q1"></div>
-                <div class="target" id="target-p1"></div>
+    <div class="game-container">
+        <div class="info-bar">
+            <div id="timer" class="timer">Tempo: 02:00</div>
+            <div class="instructions">
+                <span class="instructions-desktop">Arraste as peças e clique duplo para girar.</span>
+                <span class="instructions-mobile">Arraste as peças e toque para girar.</span>
             </div>
         </div>
-        <div id="pieces-area">
-            <!-- Peças Arrastáveis -->
-            <div class="piece triangle" id="t1" data-target="target-t1"></div>
-            <div class="piece triangle" id="t2" data-target="target-t2"></div>
-            <div class="piece triangle" id="t3" data-target="target-t3"></div>
-            <div class="piece triangle" id="t4" data-target="target-t4"></div>
-            <div class="piece triangle" id="t5" data-target="target-t5"></div>
-            <div class="piece" id="q1" data-target="target-q1"></div>
-            <div class="piece" id="p1" data-target="target-p1"></div>
+        <div class="game-board">
+            <div id="puzzle-area" class="puzzle-area"></div>
+            <div class="pieces-area">
+                <div id="pieces-area-content" class="pieces-area-content"></div>
+            </div>
         </div>
     </div>
 
-    <div id="modal">
-        <div id="modal-content">
-            <h2 id="modal-title"></h2>
-            <p id="modal-text"></p>
-            <img id="final-image" src="https://images.pexels.com/photos/1648377/pexels-photo-1648377.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Bebê fofo" style="display:none;">
+    <div id="win-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Parabéns!</h2>
+            <img id="win-image" src="https://i.ibb.co/L5QxT2W/bebe-fofo-dente.jpg" alt="Bebê fofo com roupa de dente de Natal" class="win-image">
+            <p id="modal-text">Você completou o Tangram em <b><span id="final-time"></span></b>!</p>
             <button id="play-again-btn">Jogar Novamente</button>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const piecesArea = document.getElementById('pieces-area');
-            const pieces = document.querySelectorAll('.piece');
-            const targets = document.querySelectorAll('.target');
-            const modal = document.getElementById('modal');
+            const PIECES_DATA = [
+                { id: 1, svg: '<path d="M 0 0 L 200 0 L 100 100 Z"/>', w: 200, h: 100, pos: { x: 100, y: 0 }, rot: 0 }, // Triângulo Grande 1
+                { id: 2, svg: '<path d="M 0 0 L 200 0 L 100 100 Z"/>', w: 200, h: 100, pos: { x: 100, y: 100 }, rot: 180 }, // Triângulo Grande 2
+                { id: 3, svg: '<path d="M 0 0 L 100 0 L 50 50 Z"/>', w: 100, h: 50, pos: { x: 250, y: 150 }, rot: 180 }, // Triângulo Pequeno 1
+                { id: 4, svg: '<path d="M 0 0 L 100 0 L 50 50 Z"/>', w: 100, h: 50, pos: { x: 250, y: 250 }, rot: 0 }, // Triângulo Pequeno 2
+                { id: 5, svg: '<path d="M 0 50 L 50 0 L 150 0 L 100 50 Z"/>', w: 150, h: 50, pos: { x: 175, y: 225 }, rot: 0 }, // Paralelogramo
+                { id: 6, svg: '<path d="M 0 0 L 100 0 L 100 100 L 0 100 Z"/>', w: 100, h: 100, pos: { x: 50, y: 250 }, rot: 45 }, // Quadrado
+                { id: 7, svg: '<path d="M 0 0 L 100 100 L 0 100 Z"/>', w: 100, h: 100, pos: { x: 50, y: 150 }, rot: 0 }, // Triângulo Médio
+            ];
+
+            const puzzleArea = document.getElementById('puzzle-area');
+            const piecesArea = document.getElementById('pieces-area-content');
+            const timerEl = document.getElementById('timer');
+            const winModal = document.getElementById('win-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalText = document.getElementById('modal-text');
-            const finalImage = document.getElementById('final-image');
+            const finalTimeEl = document.getElementById('final-time');
             const playAgainBtn = document.getElementById('play-again-btn');
-            const timerDisplay = document.getElementById('timer');
+            const winImage = document.getElementById('win-image');
 
             let activePiece = null;
-            let offsetX, offsetY;
-            
-            let placedPieces = 0;
+            let initialX, initialY, offsetX, offsetY;
             let timerInterval;
-            let seconds = 0;
-            const timeLimit = 180; // 3 minutos
+            let totalTime = 120; // 2 minutos
+            let timePassed = 0;
+            let isDragging = false;
+            let touchStartTime = 0;
 
-            function startGame() {
-                // Resetar tudo
-                placedPieces = 0;
-                seconds = 0;
-                clearInterval(timerInterval);
-                timerDisplay.textContent = 'Tempo: 00:00';
-                modal.style.display = 'none';
-
-                // Embaralhar peças
-                pieces.forEach(piece => {
-                    piece.classList.remove('placed');
-                    piece.style.pointerEvents = 'auto';
-                    
-                    const areaRect = piecesArea.getBoundingClientRect();
-                    const pieceRect = piece.getBoundingClientRect();
-
-                    const randomX = Math.random() * (areaRect.width - pieceRect.width);
-                    const randomY = Math.random() * (areaRect.height - pieceRect.height);
-                    const randomRot = Math.floor(Math.random() * 8) * 45; // Rotação em múltiplos de 45 graus
-
-                    piece.style.position = 'absolute';
-                    piece.style.top = `${randomY}px`;
-                    piece.style.left = `${randomX}px`;
-                    piece.dataset.rotation = randomRot;
-                    piece.style.transform = `rotate(${randomRot}deg)`;
-                    
-                    piecesArea.appendChild(piece);
-                });
-
-                // Iniciar cronômetro
-                timerInterval = setInterval(updateTimer, 1000);
+            function createPieceElement(data, isTarget = false) {
+                const el = document.createElement('div');
+                el.innerHTML = data.svg;
+                el.classList.add(isTarget ? 'target' : 'piece');
+                el.dataset.id = data.id;
+                
+                if (isTarget) {
+                    // Posiciona a silhueta no gabarito
+                    const scale = puzzleArea.clientWidth / 400; // Escala baseada no tamanho do container
+                    el.style.width = `${data.w * scale}px`;
+                    el.style.height = `${data.h * scale}px`;
+                    el.style.left = `${data.pos.x * scale}px`;
+                    el.style.top = `${data.pos.y * scale}px`;
+                    el.style.transform = `rotate(${data.rot}deg)`;
+                } else {
+                    // Peças soltas não têm posição absoluta inicial, o flexbox cuida disso
+                    el.style.position = 'relative';
+                    el.style.width = `${data.w * 0.7}px`; // Tamanho reduzido na área de peças
+                    el.style.height = `${data.h * 0.7}px`;
+                    el.dataset.rotation = 0;
+                }
+                return el;
             }
 
-            function updateTimer() {
-                seconds++;
-                const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
-                const remainingSeconds = (seconds % 60).toString().padStart(2, '0');
-                timerDisplay.textContent = `Tempo: ${minutes}:${remainingSeconds}`;
-                
-                if (seconds >= timeLimit) {
-                    endGame(false);
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
                 }
+            }
+            
+            function startGame() {
+                puzzleArea.innerHTML = '';
+                piecesArea.innerHTML = '';
+                winModal.style.display = 'none';
+                
+                // 1. Criar a silhueta (gabarito) - NÃO embaralhar
+                PIECES_DATA.forEach(data => {
+                    const targetEl = createPieceElement(data, true);
+                    puzzleArea.appendChild(targetEl);
+                });
+
+                // 2. Criar e embaralhar as peças jogáveis
+                const pieceElements = PIECES_DATA.map(data => createPieceElement(data, false));
+                shuffle(pieceElements);
+                pieceElements.forEach(el => {
+                    piecesArea.appendChild(el);
+                    addPieceListeners(el);
+                });
+
+                // 3. Iniciar timers
+                timePassed = 0;
+                clearInterval(timerInterval);
+                updateTimerDisplay(totalTime);
+                timerInterval = setInterval(() => {
+                    timePassed++;
+                    const timeLeft = totalTime - timePassed;
+                    updateTimerDisplay(timeLeft);
+                    if (timeLeft <= 0) {
+                        endGame(false);
+                    }
+                }, 1000);
+            }
+            
+            function updateTimerDisplay(seconds) {
+                const min = Math.floor(seconds / 60);
+                const sec = seconds % 60;
+                timerEl.textContent = `Tempo: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+            }
+
+            function addPieceListeners(el) {
+                el.addEventListener('mousedown', dragStart);
+                el.addEventListener('touchstart', dragStart, { passive: false });
             }
 
             function dragStart(e) {
-                activePiece = e.target;
-                if (activePiece.classList.contains('placed')) {
-                    activePiece = null;
-                    return;
+                if (e.target.closest('.piece').classList.contains('locked')) return;
+
+                isDragging = false; // Reset no início do toque/clique
+                touchStartTime = Date.now();
+
+                activePiece = e.target.closest('.piece');
+                activePiece.classList.add('dragging');
+                
+                // Transfere a peça para o puzzleArea para posicionamento absoluto
+                if (activePiece.parentElement !== puzzleArea) {
+                    const rect = activePiece.getBoundingClientRect();
+                    puzzleArea.appendChild(activePiece);
+                    activePiece.style.position = 'absolute';
+                    // Mantém a peça sob o cursor/dedo
+                    offsetX = rect.width / 2;
+                    offsetY = rect.height / 2;
+                    activePiece.style.left = `${e.clientX - puzzleArea.getBoundingClientRect().left - offsetX}px`;
+                    activePiece.style.top = `${e.clientY - puzzleArea.getBoundingClientRect().top - offsetY}px`;
+                }
+
+                if (e.type === 'mousedown') {
+                    initialX = e.clientX - activePiece.offsetLeft;
+                    initialY = e.clientY - activePiece.offsetTop;
+                } else { // touchstart
+                    const touch = e.touches[0];
+                    initialX = touch.clientX - activePiece.offsetLeft;
+                    initialY = touch.clientY - activePiece.offsetTop;
                 }
                 
-                activePiece.classList.add('dragging');
-
-                // Calcula o deslocamento do ponteiro em relação ao canto superior esquerdo da peça
-                const rect = activePiece.getBoundingClientRect();
-                const touch = e.type === 'touchstart' ? e.touches[0] : e;
-                offsetX = touch.clientX - rect.left;
-                offsetY = touch.clientY - rect.top;
-
-                // Move a peça para o body para que ela fique acima de tudo
-                document.body.appendChild(activePiece);
-                activePiece.style.position = 'absolute';
+                document.addEventListener('mousemove', dragMove);
+                document.addEventListener('touchmove', dragMove, { passive: false });
+                document.addEventListener('mouseup', dragEnd);
+                document.addEventListener('touchend', dragEnd);
             }
-            
+
             function dragMove(e) {
                 if (!activePiece) return;
-                e.preventDefault(); // Previne scroll em mobile
-
-                const touch = e.type === 'touchmove' ? e.touches[0] : e;
-                let x = touch.clientX - offsetX;
-                let y = touch.clientY - offsetY;
-
-                activePiece.style.left = `${x}px`;
-                activePiece.style.top = `${y}px`;
+                
+                e.preventDefault(); // Previne scroll no celular
+                isDragging = true;
+                
+                let currentX, currentY;
+                if (e.type === 'mousemove') {
+                    currentX = e.clientX;
+                    currentY = e.clientY;
+                } else { // touchmove
+                    const touch = e.touches[0];
+                    currentX = touch.clientX;
+                    currentY = touch.clientY;
+                }
+                
+                activePiece.style.left = `${currentX - initialX}px`;
+                activePiece.style.top = `${currentY - initialY}px`;
             }
 
             function dragEnd(e) {
+                document.removeEventListener('mousemove', dragMove);
+                document.removeEventListener('touchmove', dragMove);
+                document.removeEventListener('mouseup', dragEnd);
+                document.removeEventListener('touchend', dragEnd);
+
                 if (!activePiece) return;
+
+                const touchEndTime = Date.now();
                 
+                // Se não arrastou e o toque foi rápido, rotaciona a peça
+                if (!isDragging && (touchEndTime - touchStartTime < 250)) {
+                    rotatePiece(activePiece);
+                } else {
+                    // Lógica de encaixe
+                    checkSnap();
+                }
+
                 activePiece.classList.remove('dragging');
-                let droppedOnTarget = false;
-
-                const targetId = activePiece.dataset.target;
-                const targetElement = document.getElementById(targetId);
-                const pieceRect = activePiece.getBoundingClientRect();
-                const targetRect = targetElement.getBoundingClientRect();
-                
-                // Lógica de verificação de encaixe (overlap e rotação)
-                const overlap = !(pieceRect.right < targetRect.left || 
-                                  pieceRect.left > targetRect.right || 
-                                  pieceRect.bottom < targetRect.top || 
-                                  pieceRect.top > targetRect.bottom);
-
-                const currentRotation = parseInt(activePiece.dataset.rotation || 0) % 360;
-                
-                // Encaixe se houver sobreposição e a rotação for a correta (0 graus para a posição da silhueta)
-                if (overlap && currentRotation === 0) {
-                    const targetPos = targetElement.getBoundingClientRect();
-                    activePiece.style.left = `${targetPos.left}px`;
-                    activePiece.style.top = `${targetPos.top}px`;
-                    activePiece.style.transform = `rotate(0deg)`;
-                    activePiece.classList.add('placed');
-                    activePiece.style.pointerEvents = 'none';
-                    
-                    document.getElementById('tangram-board').appendChild(activePiece);
-                    
-                    placedPieces++;
-                    droppedOnTarget = true;
-                    if (placedPieces === pieces.length) {
-                        endGame(true);
-                    }
-                }
-
-                if (!droppedOnTarget) {
-                    // Se não encaixou, volta para a área de peças
-                    piecesArea.appendChild(activePiece);
-                    activePiece.style.position = 'absolute'; // Garante que a posição seja relativa à nova área
-                    activePiece.style.top = '50%'; // Apenas um exemplo, pode ser melhorado
-                    activePiece.style.left = '50%';
-                }
-
                 activePiece = null;
+                isDragging = false;
             }
 
-            function rotatePiece(e) {
-                const piece = e.target;
-                if (piece.classList.contains('placed')) return;
-
-                let currentRotation = parseInt(piece.dataset.rotation || 0);
-                currentRotation = (currentRotation + 45) % 360;
+            function rotatePiece(piece) {
+                let currentRotation = parseInt(piece.dataset.rotation) || 0;
+                const targetData = PIECES_DATA.find(p => p.id == piece.dataset.id);
+                // Paralelogramo gira 90, outros 45
+                const rotationStep = targetData.id === 5 ? 90 : 45;
+                currentRotation = (currentRotation + rotationStep) % 360;
                 piece.dataset.rotation = currentRotation;
                 piece.style.transform = `rotate(${currentRotation}deg)`;
+                checkSnap(); // Verifica se encaixou após a rotação
+            }
+
+            function checkSnap() {
+                if (!activePiece) return;
+                const pieceRect = activePiece.getBoundingClientRect();
+                const targetEl = puzzleArea.querySelector(`.target[data-id="${activePiece.dataset.id}"]`);
+                const targetRect = targetEl.getBoundingClientRect();
+                
+                const pieceRotation = parseInt(activePiece.dataset.rotation) || 0;
+                const targetRotation = PIECES_DATA.find(p => p.id == activePiece.dataset.id).rot;
+                
+                // Verifica sobreposição, posição e rotação
+                const dx = pieceRect.left + pieceRect.width / 2 - (targetRect.left + targetRect.width / 2);
+                const dy = pieceRect.top + pieceRect.height / 2 - (targetRect.top + targetRect.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                const rotationDiff = Math.abs(pieceRotation - targetRotation);
+                
+                // Tolerância para encaixe
+                if (distance < 20 && (rotationDiff % 360 === 0)) {
+                    // Encaixou!
+                    activePiece.style.left = targetEl.style.left;
+                    activePiece.style.top = targetEl.style.top;
+                    activePiece.style.transform = targetEl.style.transform;
+                    activePiece.style.width = targetEl.style.width;
+                    activePiece.style.height = targetEl.style.height;
+                    activePiece.classList.add('locked');
+                    checkWin();
+                }
+            }
+
+            function checkWin() {
+                const lockedPieces = puzzleArea.querySelectorAll('.piece.locked').length;
+                if (lockedPieces === PIECES_DATA.length) {
+                    endGame(true);
+                }
             }
             
             function endGame(isWin) {
                 clearInterval(timerInterval);
                 if (isWin) {
-                    modalTitle.textContent = "Parabéns! Você conseguiu!";
-                    modalText.textContent = `Seu tempo: ${seconds} segundos.`;
-                    finalImage.style.display = 'block';
+                    modalTitle.textContent = "Parabéns!";
+                    finalTimeEl.textContent = `${timePassed} segundos`;
+                    modalText.style.display = 'block';
+                    winImage.style.display = 'block';
+                    winModal.style.display = 'flex';
                 } else {
-                    modalTitle.textContent = "O tempo acabou!";
-                    modalText.textContent = "Mas você chegou perto. Que tal tentar de novo?";
-                    finalImage.style.display = 'none';
+                    modalTitle.textContent = "Tempo Esgotado!";
+                    modalText.innerHTML = "Não desanime! A prática leva à perfeição. <br>Tente novamente!";
+                    winImage.style.display = 'none';
+                    winModal.style.display = 'flex';
                 }
-                modal.style.display = 'flex';
             }
-
-            // Event Listeners para Mouse e Toque
-            pieces.forEach(piece => {
-                piece.addEventListener('mousedown', dragStart);
-                piece.addEventListener('touchstart', dragStart, { passive: false });
-                piece.addEventListener('dblclick', rotatePiece); // Rotação com duplo clique
-                // Adicionamos um listener de 'contextmenu' para rotação com botão direito, prevenindo o menu
-                piece.addEventListener('contextmenu', e => {
-                    e.preventDefault();
-                    rotatePiece(e);
-                });
-            });
-
-            document.addEventListener('mousemove', dragMove);
-            document.addEventListener('touchmove', dragMove, { passive: false });
-
-            document.addEventListener('mouseup', dragEnd);
-            document.addEventListener('touchend', dragEnd);
 
             playAgainBtn.addEventListener('click', startGame);
 
-            // Iniciar o jogo pela primeira vez
+            // Iniciar o jogo
             startGame();
+             // Ajustar tamanho em caso de redimensionamento da janela
+            window.addEventListener('resize', startGame);
         });
     </script>
-
 </body>
 </html>
