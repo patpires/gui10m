@@ -5,382 +5,402 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tangram Divertido</title>
     <style>
-        /* --- Estilos Gerais --- */
         :root {
-            --cor-peca: #4a90e2;
-            --cor-peca-borda: #357ABD;
-            --cor-tabuleiro: #f0f0f0;
-            --cor-tabuleiro-sombra: rgba(0, 0, 0, 0.1);
-            --cor-fundo: #f8f9fa;
-            --cor-texto: #333;
-            --cor-sucesso: #28a745;
-            --cor-falha: #dc3545;
+            --piece-color: #3498db;
+            --target-color: #ecf0f1;
+            --background-color: #f0f5f9;
+            --text-color: #2c3e50;
+            --accent-color: #2ecc71;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            background-color: var(--cor-fundo);
-            color: var(--cor-texto);
+            background-color: var(--background-color);
+            color: var(--text-color);
             overflow: hidden;
+            user-select: none; /* Impede a seleção de texto ao arrastar */
         }
 
-        /* --- Layout Principal --- */
-        .game-container {
+        #game-container {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            padding: 20px;
             width: 100%;
             max-width: 1200px;
-            padding: 20px;
-            box-sizing: border-box;
         }
 
-        .game-header {
+        #puzzle-area, #pieces-area {
+            padding: 10px;
+            border-radius: 15px;
+            background-color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        #puzzle-area {
+            flex: 1;
+            min-width: 320px;
+            max-width: 500px;
+        }
+
+        #pieces-area {
+            flex: 1;
+            min-width: 320px;
+            max-width: 500px;
+            min-height: 400px; /* Garante espaço para peças embaralhadas */
+            position: relative; /* Para posicionar as peças dentro dela */
+        }
+        
+        #info-panel {
             width: 100%;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
-
-        .game-header h1 {
-            margin: 0;
-            color: var(--cor-peca);
-        }
-
-        .timer {
+        
+        #timer, #win-message {
             font-size: 1.5em;
             font-weight: bold;
         }
 
-        .game-area {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 30px;
-            width: 100%;
-        }
-
-        /* --- Tabuleiro e Peças --- */
-        #tangram-board, #pieces-container {
+        #tangram-board {
+            position: relative;
             width: 300px;
             height: 300px;
-            position: relative;
+            margin: 20px auto;
         }
-
-        #tangram-board {
-            background-color: var(--cor-tabuleiro);
-            box-shadow: 0 4px 8px var(--cor-tabuleiro-sombra);
-            border-radius: 8px;
-        }
-
-        #pieces-container {
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-        }
-
-        .target-slot {
+        
+        .target, .piece {
             position: absolute;
-            width: 100%;
-            height: 100%;
+            width: 0;
+            height: 0;
+            background-color: var(--piece-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .target-slot svg {
-            width: 100%;
-            height: 100%;
-            fill: none;
-            stroke: #d0d0d0;
-            stroke-width: 2;
-            stroke-dasharray: 4;
+        .target {
+            background-color: var(--target-color);
+            border: 2px dashed #bdc3c7;
         }
 
         .piece {
-            position: absolute;
-            width: 300px; /* Base size, transforms will adjust */
-            height: 300px;
             cursor: grab;
-            transition: transform 0.2s ease, opacity 0.2s ease;
+            z-index: 10;
         }
-
-        .piece svg {
-            width: 100%;
-            height: 100%;
-            fill: var(--cor-peca);
-            stroke: var(--cor-peca-borda);
-            stroke-width: 2;
-            filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.2));
-        }
-
+        
         .piece.dragging {
             cursor: grabbing;
-            opacity: 0.6;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             transform: scale(1.1);
-            z-index: 1000;
-        }
-        
-        .piece.placed {
-            cursor: default;
-            opacity: 1;
-            pointer-events: none; /* Impede novos arrastos */
-        }
-        
-        .piece.placed svg {
-             fill: var(--cor-sucesso);
-             stroke: darken(var(--cor-sucesso), 10%);
+            z-index: 20;
         }
 
-        /* --- Modal de Fim de Jogo --- */
-        .modal {
-            display: none;
+        .piece.placed {
+            opacity: 0.9;
+            pointer-events: none; /* Não pode mais ser arrastada */
+        }
+
+        /* Definição das formas do Tangram (Triângulos e Quadriláteros) */
+        .triangle { border-style: solid; background-color: transparent; }
+        
+        #t1, #target-t1 { border-width: 0 75px 75px 75px; border-color: transparent transparent var(--piece-color) transparent; top: 0; left: 75px; }
+        #t2, #target-t2 { border-width: 0 75px 75px 75px; border-color: transparent transparent var(--piece-color) transparent; top: 150px; left: 75px; }
+        #t3, #target-t3 { border-width: 0 37.5px 37.5px 37.5px; border-color: transparent transparent var(--piece-color) transparent; top: 75px; left: 112.5px;}
+        #t4, #target-t4 { border-width: 75px 0 0 75px; border-color: var(--piece-color) transparent transparent transparent; top: 150px; left: 0;}
+        #t5, #target-t5 { border-width: 75px 75px 0 0; border-color: var(--piece-color) transparent transparent transparent; top: 75px; left: 150px;}
+        
+        #q1, #target-q1 { width: 75px; height: 75px; top: 75px; left: 37.5px; transform: rotate(45deg); transform-origin: center; }
+        #p1, #target-p1 { width: 107px; height: 53px; top: 200px; left: 100px; background-color: var(--piece-color); clip-path: polygon(25% 0, 100% 0, 75% 100%, 0 100%); transform: rotate(45deg); }
+        
+        /* Corrigindo a cor da borda para as silhuetas */
+        #target-t1 { border-color: transparent transparent var(--target-color) transparent; }
+        #target-t2 { border-color: transparent transparent var(--target-color) transparent; }
+        #target-t3 { border-color: transparent transparent var(--target-color) transparent; }
+        #target-t4 { border-color: var(--target-color) transparent transparent transparent; }
+        #target-t5 { border-color: var(--target-color) transparent transparent transparent; }
+        #target-q1, #target-p1 { background-color: var(--target-color); }
+
+        #modal {
             position: fixed;
-            z-index: 2000;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.6);
+            display: none;
             justify-content: center;
             align-items: center;
-        }
-
-        .modal-content {
-            background-color: white;
-            padding: 30px;
-            border-radius: 12px;
+            z-index: 100;
+            flex-direction: column;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            max-width: 90%;
-            width: 400px;
         }
 
-        .modal-content h2 {
+        #modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+        }
+
+        #modal h2 {
+            font-size: 2em;
+            color: var(--accent-color);
             margin-top: 0;
         }
+        
+        #modal p { font-size: 1.2em; }
 
-        #win-image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            margin: 15px 0;
+        #final-image {
+            width: 250px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin: 20px 0;
         }
-
+        
         #play-again-btn {
-            background-color: var(--cor-peca);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 1em;
-            font-weight: bold;
-            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1.1em;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--accent-color);
+            color: white;
+            transition: background-color 0.3s;
         }
-
-        #play-again-btn:hover {
-            background-color: var(--cor-peca-borda);
-        }
-
-        /* --- Responsividade --- */
-        @media (max-width: 768px) {
-            .game-area {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            #tangram-board, #pieces-container {
-                width: 250px;
-                height: 250px;
-            }
-
-            .piece {
-                width: 250px;
-                height: 250px;
-            }
-            .game-header h1 {
-                font-size: 1.8em;
-            }
-        }
-
+        #play-again-btn:hover { background-color: #27ae60; }
     </style>
 </head>
 <body>
 
-    <div class="game-container">
-        <header class="game-header">
-            <h1>Monte o Tangram!</h1>
-            <p>Tempo: <span id="timer" class="timer">0s</span> / 120s</p>
-        </header>
-
-        <main class="game-area">
+    <div id="game-container">
+        <div id="puzzle-area">
+            <div id="info-panel">
+                <div id="timer">Tempo: 00:00</div>
+            </div>
             <div id="tangram-board">
-                <!-- Slots de destino para as peças -->
-                <div class="target-slot" data-id="1"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 50,50 0,100"/></svg></div>
-                <div class="target-slot" data-id="2"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 100,0 50,50"/></svg></div>
-                <div class="target-slot" data-id="3"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,100 50,50 100,100"/></svg></div>
-                <div class="target-slot" data-id="4"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,50 75,25 100,50 75,75"/></svg></div>
-                <div class="target-slot" data-id="5"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="100,0 100,50 75,25"/></svg></div>
-                <div class="target-slot" data-id="6"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,50 75,75 25,75"/></svg></div>
-                <div class="target-slot" data-id="7"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="100,50 100,100 75,75"/></svg></div>
+                <!-- Silhuetas -->
+                <div class="target" id="target-t1"></div>
+                <div class="target" id="target-t2"></div>
+                <div class="target" id="target-t3"></div>
+                <div class="target" id="target-t4"></div>
+                <div class="target" id="target-t5"></div>
+                <div class="target" id="target-q1"></div>
+                <div class="target" id="target-p1"></div>
             </div>
-
-            <div id="pieces-container">
-                <!-- Peças arrastáveis -->
-                <div class="piece" draggable="true" data-id="1"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 50,50 0,100"/></svg></div>
-                <div class="piece" draggable="true" data-id="2"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 100,0 50,50"/></svg></div>
-                <div class="piece" draggable="true" data-id="3"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,100 50,50 100,100"/></svg></div>
-                <div class="piece" draggable="true" data-id="4"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,50 75,25 100,50 75,75"/></svg></div>
-                <div class="piece" draggable="true" data-id="5"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="100,0 100,50 75,25"/></svg></div>
-                <div class="piece" draggable="true" data-id="6"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,50 75,75 25,75"/></svg></div>
-                <div class="piece" draggable="true" data-id="7"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="100,50 100,100 75,75"/></svg></div>
-            </div>
-        </main>
+        </div>
+        <div id="pieces-area">
+            <!-- Peças Arrastáveis -->
+            <div class="piece triangle" id="t1" data-target="target-t1"></div>
+            <div class="piece triangle" id="t2" data-target="target-t2"></div>
+            <div class="piece triangle" id="t3" data-target="target-t3"></div>
+            <div class="piece triangle" id="t4" data-target="target-t4"></div>
+            <div class="piece triangle" id="t5" data-target="target-t5"></div>
+            <div class="piece" id="q1" data-target="target-q1"></div>
+            <div class="piece" id="p1" data-target="target-p1"></div>
+        </div>
     </div>
 
-    <!-- Modal de Fim de Jogo -->
-    <div id="end-game-modal" class="modal">
-        <div class="modal-content">
+    <div id="modal">
+        <div id="modal-content">
             <h2 id="modal-title"></h2>
-            <p id="modal-message"></p>
-            <img id="win-image" src="" alt="Surpresa!" style="display:none;">
+            <p id="modal-text"></p>
+            <img id="final-image" src="https://images.pexels.com/photos/1648377/pexels-photo-1648377.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Bebê fofo" style="display:none;">
             <button id="play-again-btn">Jogar Novamente</button>
         </div>
     </div>
 
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const piecesArea = document.getElementById('pieces-area');
             const pieces = document.querySelectorAll('.piece');
-            const targets = document.querySelectorAll('.target-slot');
-            const piecesContainer = document.getElementById('pieces-container');
-            const timerEl = document.getElementById('timer');
-            const modal = document.getElementById('end-game-modal');
+            const targets = document.querySelectorAll('.target');
+            const modal = document.getElementById('modal');
             const modalTitle = document.getElementById('modal-title');
-            const modalMessage = document.getElementById('modal-message');
-            const winImage = document.getElementById('win-image');
+            const modalText = document.getElementById('modal-text');
+            const finalImage = document.getElementById('final-image');
             const playAgainBtn = document.getElementById('play-again-btn');
+            const timerDisplay = document.getElementById('timer');
 
-            const TIME_LIMIT_SECONDS = 120;
-            const TOTAL_PIECES = 7;
-            let placedPiecesCount = 0;
+            let activePiece = null;
+            let offsetX, offsetY;
+            
+            let placedPieces = 0;
             let timerInterval;
-            let secondsPassed = 0;
-            let gameActive = false;
+            let seconds = 0;
+            const timeLimit = 180; // 3 minutos
 
             function startGame() {
-                gameActive = true;
-                placedPiecesCount = 0;
-                secondsPassed = 0;
-                modal.style.display = 'none';
-                
+                // Resetar tudo
+                placedPieces = 0;
+                seconds = 0;
                 clearInterval(timerInterval);
-                updateTimerDisplay();
+                timerDisplay.textContent = 'Tempo: 00:00';
+                modal.style.display = 'none';
 
-                // Resetar e embaralhar peças
+                // Embaralhar peças
                 pieces.forEach(piece => {
                     piece.classList.remove('placed');
-                    piece.draggable = true;
+                    piece.style.pointerEvents = 'auto';
                     
-                    const containerRect = piecesContainer.getBoundingClientRect();
-                    // Limita a posição para não sair do contêiner
-                    const randomX = Math.random() * (containerRect.width - piece.clientWidth);
-                    const randomY = Math.random() * (containerRect.height - piece.clientHeight);
-                    
+                    const areaRect = piecesArea.getBoundingClientRect();
+                    const pieceRect = piece.getBoundingClientRect();
+
+                    const randomX = Math.random() * (areaRect.width - pieceRect.width);
+                    const randomY = Math.random() * (areaRect.height - pieceRect.height);
+                    const randomRot = Math.floor(Math.random() * 8) * 45; // Rotação em múltiplos de 45 graus
+
+                    piece.style.position = 'absolute';
                     piece.style.top = `${randomY}px`;
                     piece.style.left = `${randomX}px`;
+                    piece.dataset.rotation = randomRot;
+                    piece.style.transform = `rotate(${randomRot}deg)`;
+                    
+                    piecesArea.appendChild(piece);
                 });
 
+                // Iniciar cronômetro
                 timerInterval = setInterval(updateTimer, 1000);
             }
 
             function updateTimer() {
-                secondsPassed++;
-                updateTimerDisplay();
-
-                if (secondsPassed >= TIME_LIMIT_SECONDS) {
-                    endGame(false); // Perdeu por tempo
+                seconds++;
+                const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const remainingSeconds = (seconds % 60).toString().padStart(2, '0');
+                timerDisplay.textContent = `Tempo: ${minutes}:${remainingSeconds}`;
+                
+                if (seconds >= timeLimit) {
+                    endGame(false);
                 }
+            }
+
+            function dragStart(e) {
+                activePiece = e.target;
+                if (activePiece.classList.contains('placed')) {
+                    activePiece = null;
+                    return;
+                }
+                
+                activePiece.classList.add('dragging');
+
+                // Calcula o deslocamento do ponteiro em relação ao canto superior esquerdo da peça
+                const rect = activePiece.getBoundingClientRect();
+                const touch = e.type === 'touchstart' ? e.touches[0] : e;
+                offsetX = touch.clientX - rect.left;
+                offsetY = touch.clientY - rect.top;
+
+                // Move a peça para o body para que ela fique acima de tudo
+                document.body.appendChild(activePiece);
+                activePiece.style.position = 'absolute';
             }
             
-            function updateTimerDisplay() {
-                timerEl.textContent = `${secondsPassed}s`;
+            function dragMove(e) {
+                if (!activePiece) return;
+                e.preventDefault(); // Previne scroll em mobile
+
+                const touch = e.type === 'touchmove' ? e.touches[0] : e;
+                let x = touch.clientX - offsetX;
+                let y = touch.clientY - offsetY;
+
+                activePiece.style.left = `${x}px`;
+                activePiece.style.top = `${y}px`;
             }
 
-            function handleDragStart(e) {
-                if (!gameActive) return;
-                e.dataTransfer.setData('text/plain', e.target.dataset.id);
-                e.target.classList.add('dragging');
-            }
-
-            function handleDragEnd(e) {
-                e.target.classList.remove('dragging');
-            }
-
-            function handleDragOver(e) {
-                e.preventDefault(); // Necessário para permitir o drop
-            }
-
-            function handleDrop(e) {
-                e.preventDefault();
-                if (!gameActive) return;
-
-                const pieceId = e.dataTransfer.getData('text/plain');
-                const targetId = e.currentTarget.dataset.id;
+            function dragEnd(e) {
+                if (!activePiece) return;
                 
-                if (pieceId === targetId) {
-                    const piece = document.querySelector(`.piece[data-id='${pieceId}']`);
-                    const target = e.currentTarget;
+                activePiece.classList.remove('dragging');
+                let droppedOnTarget = false;
 
-                    if (piece && !piece.classList.contains('placed')) {
-                        // "Trava" a peça no lugar
-                        piece.style.top = '0';
-                        piece.style.left = '0';
-                        target.appendChild(piece); // Move a peça para dentro do seu slot
-                        
-                        piece.classList.add('placed');
-                        piece.draggable = false;
-                        placedPiecesCount++;
+                const targetId = activePiece.dataset.target;
+                const targetElement = document.getElementById(targetId);
+                const pieceRect = activePiece.getBoundingClientRect();
+                const targetRect = targetElement.getBoundingClientRect();
+                
+                // Lógica de verificação de encaixe (overlap e rotação)
+                const overlap = !(pieceRect.right < targetRect.left || 
+                                  pieceRect.left > targetRect.right || 
+                                  pieceRect.bottom < targetRect.top || 
+                                  pieceRect.top > targetRect.bottom);
 
-                        if (placedPiecesCount === TOTAL_PIECES) {
-                            endGame(true); // Ganhou
-                        }
+                const currentRotation = parseInt(activePiece.dataset.rotation || 0) % 360;
+                
+                // Encaixe se houver sobreposição e a rotação for a correta (0 graus para a posição da silhueta)
+                if (overlap && currentRotation === 0) {
+                    const targetPos = targetElement.getBoundingClientRect();
+                    activePiece.style.left = `${targetPos.left}px`;
+                    activePiece.style.top = `${targetPos.top}px`;
+                    activePiece.style.transform = `rotate(0deg)`;
+                    activePiece.classList.add('placed');
+                    activePiece.style.pointerEvents = 'none';
+                    
+                    document.getElementById('tangram-board').appendChild(activePiece);
+                    
+                    placedPieces++;
+                    droppedOnTarget = true;
+                    if (placedPieces === pieces.length) {
+                        endGame(true);
                     }
                 }
+
+                if (!droppedOnTarget) {
+                    // Se não encaixou, volta para a área de peças
+                    piecesArea.appendChild(activePiece);
+                    activePiece.style.position = 'absolute'; // Garante que a posição seja relativa à nova área
+                    activePiece.style.top = '50%'; // Apenas um exemplo, pode ser melhorado
+                    activePiece.style.left = '50%';
+                }
+
+                activePiece = null;
             }
 
-            function endGame(isWin) {
-                gameActive = false;
-                clearInterval(timerInterval);
+            function rotatePiece(e) {
+                const piece = e.target;
+                if (piece.classList.contains('placed')) return;
 
+                let currentRotation = parseInt(piece.dataset.rotation || 0);
+                currentRotation = (currentRotation + 45) % 360;
+                piece.dataset.rotation = currentRotation;
+                piece.style.transform = `rotate(${currentRotation}deg)`;
+            }
+            
+            function endGame(isWin) {
+                clearInterval(timerInterval);
                 if (isWin) {
-                    modalTitle.textContent = '🎉 Parabéns! 🎉';
-                    modalMessage.textContent = `Você montou o Tangram em ${secondsPassed} segundos!`;
-                    modalTitle.style.color = 'var(--cor-sucesso)';
-                    // IMPORTANTE: Substitua esta URL pela da sua imagem!
-                    winImage.src = 'https://i.imgur.com/rNnPYwW.png'; 
-                    winImage.style.display = 'block';
+                    modalTitle.textContent = "Parabéns! Você conseguiu!";
+                    modalText.textContent = `Seu tempo: ${seconds} segundos.`;
+                    finalImage.style.display = 'block';
                 } else {
-                    modalTitle.textContent = 'Tempo Esgotado!';
-                    modalMessage.textContent = 'Não desanime! A persistência leva à perfeição. Tente novamente!';
-                    modalTitle.style.color = 'var(--cor-falha)';
-                    winImage.style.display = 'none';
+                    modalTitle.textContent = "O tempo acabou!";
+                    modalText.textContent = "Mas você chegou perto. Que tal tentar de novo?";
+                    finalImage.style.display = 'none';
                 }
-                
                 modal.style.display = 'flex';
             }
 
-            // Adicionar eventos
+            // Event Listeners para Mouse e Toque
             pieces.forEach(piece => {
-                piece.addEventListener('dragstart', handleDragStart);
-                piece.addEventListener('dragend', handleDragEnd);
+                piece.addEventListener('mousedown', dragStart);
+                piece.addEventListener('touchstart', dragStart, { passive: false });
+                piece.addEventListener('dblclick', rotatePiece); // Rotação com duplo clique
+                // Adicionamos um listener de 'contextmenu' para rotação com botão direito, prevenindo o menu
+                piece.addEventListener('contextmenu', e => {
+                    e.preventDefault();
+                    rotatePiece(e);
+                });
             });
 
-            targets.forEach(target => {
-                target.addEventListener('dragover', handleDragOver);
-                target.addEventListener('drop', handleDrop);
-            });
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('touchmove', dragMove, { passive: false });
+
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchend', dragEnd);
 
             playAgainBtn.addEventListener('click', startGame);
 
