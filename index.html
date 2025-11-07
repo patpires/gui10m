@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Cosmic Quest v7</title>
+    <title>Cosmic Quest v8</title>
     <style>
         body {
             background: #0a0a1a;
@@ -97,9 +97,9 @@
 
     <div id="tela_jogo" style="display:none;">
         <div class="status">
-            <div>🔵 Você: <span id="pontos">0</span> | 🎯 <span id="vencidas_jogador">0</span>/3</div>
+            <div>🔵 Você: <span id="pontos">0</span> | ✅ <span id="vencidas_jogador">0</span>/3</div>
             <div>Turno: <span id="turno">VOCÊ</span></div>
-            <div>🔴 IA: <span id="pontos_ia">0</span> | 🎯 <span id="vencidas_ia">0</span>/3</div>
+            <div>🔴 IA: <span id="pontos_ia">0</span> | ✅ <span id="vencidas_ia">0</span>/3</div>
         </div>
         <div id="tabuleiro" class="board"></div>
         <button onclick="voltarMenu()">VOLTAR</button>
@@ -110,8 +110,8 @@
         <p><strong>OBJETIVO:</strong> Mova suas 3 peças azuis 🔵 até o canto superior direito (⭐)</p>
         <p><strong>COMO:</strong> Clique em uma peça AZUL, depois em um hexágono VERDE para mover</p>
         <p><strong>MOVIMENTO:</strong> Cada peça se move 1-3 casas. Rochas 🪨 bloqueiam o caminho!</p>
-        <p><strong>VITÓRIA:</strong> Leve suas 3 peças ao destino antes da IA!</p>
-        <p><strong>PEÇAS NA ESTRELA:</strong> Quando sua peça chegar à estrela, ela fica protegida e não pode ser capturada!</p>
+        <p><strong>VITÓRIA:</strong> Leve suas 3 peças diferentes ao destino antes da IA!</p>
+        <p><strong>PEÇAS NA ESTRELA:</strong> Quando sua peça chegar à estrela, ela fica lá protegida! (⭐🔵)</p>
         <button onclick="voltarMenu()">VOLTAR</button>
     </div>
 
@@ -226,13 +226,15 @@
         function criarPecas() {
             jogo.pecas = [];
             
-            jogo.pecas.push({linha: 5, coluna: 0, dono: 'jogador', protegida: false});
-            jogo.pecas.push({linha: 4, coluna: 0, dono: 'jogador', protegida: false});
-            jogo.pecas.push({linha: 5, coluna: 1, dono: 'jogador', protegida: false});
+            // Peças do jogador - com ID único para rastrear
+            jogo.pecas.push({id: 'j1', linha: 5, coluna: 0, dono: 'jogador', protegida: false});
+            jogo.pecas.push({id: 'j2', linha: 4, coluna: 0, dono: 'jogador', protegida: false});
+            jogo.pecas.push({id: 'j3', linha: 5, coluna: 1, dono: 'jogador', protegida: false});
             
-            jogo.pecas.push({linha: 5, coluna: 7, dono: 'ia', protegida: false});
-            jogo.pecas.push({linha: 4, coluna: 7, dono: 'ia', protegida: false});
-            jogo.pecas.push({linha: 5, coluna: 6, dono: 'ia', protegida: false});
+            // Peças da IA - com ID único para rastrear
+            jogo.pecas.push({id: 'i1', linha: 5, coluna: 7, dono: 'ia', protegida: false});
+            jogo.pecas.push({id: 'i2', linha: 4, coluna: 7, dono: 'ia', protegida: false});
+            jogo.pecas.push({id: 'i3', linha: 5, coluna: 6, dono: 'ia', protegida: false});
             
             renderizarPecas();
         }
@@ -242,7 +244,6 @@
             for (var i = 0; i < jogo.hexagons.length; i++) {
                 var h = jogo.hexagons[i];
                 if (!h.elemento.classList.contains('obstaculo')) {
-                    // Se é destino, mostrar estrela + peça se houver
                     if (h.elemento.classList.contains('destino')) {
                         h.elemento.textContent = '⭐';
                     } else {
@@ -251,14 +252,14 @@
                 }
             }
 
-            // Desenhar todas as peças (protegidas e desprotegidas)
+            // Desenhar todas as peças
             for (var i = 0; i < jogo.pecas.length; i++) {
                 var peca = jogo.pecas[i];
                 var hex = procurarHex(peca.linha, peca.coluna);
                 if (hex) {
                     var emoji = peca.dono === 'jogador' ? '🔵' : '🔴';
                     
-                    // Se está no destino, mostrar ambos (estrela + peça)
+                    // Se está no destino, mostrar ambos
                     if (ehDestino(peca.linha, peca.coluna)) {
                         hex.textContent = '⭐' + emoji;
                     } else {
@@ -371,15 +372,19 @@
                 }
             }
 
+            // Guardar localização antiga ANTES de mover
+            var estavaNoDestino = ehDestino(peca.linha, peca.coluna);
+
             // Mover peça
             peca.linha = novaLinha;
             peca.coluna = novaColuna;
 
-            // Verificar se chegou ao destino
-            if (ehDestino(peca.linha, peca.coluna) && peca.dono === 'jogador') {
+            // Verificar se chegou ao destino (e ainda não estava lá!)
+            if (ehDestino(peca.linha, peca.coluna) && peca.dono === 'jogador' && !estavaNoDestino && !peca.protegida) {
                 peca.protegida = true;
                 jogo.pecas_jogador_vencidas++;
-                mostrarMensagem('⭐ Uma peça chegou ao destino e está protegida!');
+                jogo.pontos_jogador += 500;
+                mostrarMensagem('⭐ Uma peça chegou ao destino! +500 pontos! (' + jogo.pecas_jogador_vencidas + '/3)');
             }
 
             // Limpar seleção
@@ -424,6 +429,11 @@
                     var mov = movimentos[m];
                     var score = 50 - Math.abs(mov.linha - 0) - Math.abs(mov.coluna - 7);
 
+                    // Bônus GRANDE se chegará ao destino
+                    if (ehDestino(mov.linha, mov.coluna) && !peca.protegida) {
+                        score += 10000;
+                    }
+
                     var alvo = procurarPecaEm(mov.linha, mov.coluna);
                     if (alvo && alvo.dono === 'jogador' && !alvo.protegida) {
                         score += 500;
@@ -437,6 +447,10 @@
             }
 
             if (melhorMovimento) {
+                // Guardar se estava no destino ANTES
+                var estavaNoDestino = ehDestino(melhorMovimento.peca.linha, melhorMovimento.peca.coluna);
+
+                // Capturar se houver
                 var capturada = procurarPecaEm(melhorMovimento.linha, melhorMovimento.coluna);
                 if (capturada && capturada.dono === 'jogador' && !capturada.protegida) {
                     var index = jogo.pecas.indexOf(capturada);
@@ -447,12 +461,16 @@
                     }
                 }
 
+                // Mover
                 melhorMovimento.peca.linha = melhorMovimento.linha;
                 melhorMovimento.peca.coluna = melhorMovimento.coluna;
 
-                if (ehDestino(melhorMovimento.peca.linha, melhorMovimento.peca.coluna)) {
+                // Se chegou ao destino e ainda não estava lá
+                if (ehDestino(melhorMovimento.peca.linha, melhorMovimento.peca.coluna) && !estavaNoDestino && !melhorMovimento.peca.protegida) {
                     melhorMovimento.peca.protegida = true;
                     jogo.pecas_ia_vencidas++;
+                    jogo.pontos_ia += 500;
+                    mostrarMensagem('🤖 IA: Uma peça chegou ao destino! (' + jogo.pecas_ia_vencidas + '/3)');
                 }
 
                 renderizarPecas();
@@ -522,4 +540,4 @@
         }
     </script>
 </body>
-    </html>
+</html>
