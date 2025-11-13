@@ -38,20 +38,12 @@
 
         #game-area {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 30px;
             margin-top: 20px;
             width: 100%;
             max-width: 1200px;
-        }
-        
-        #game-row {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 30px;
-            width: 100%;
         }
 
         .container {
@@ -81,35 +73,125 @@
         
         #pieces-palette {
             position: relative;
-            width: 100%;
-            max-width: 900px;
-            min-height: 180px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            padding: 20px;
-            overflow: visible;
+            width: 280px;
+            height: calc(var(--L) + 40px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
         }
         
-        #pieces-palette h2 {
-            grid-column: 1 / -1;
-            margin: 0 0 10px 0;
+        #christmas-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 50%, #1a472a 100%);
+            z-index: 199;
+            display: none;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        #christmas-overlay.show {
+            opacity: 1;
+        }
+        
+        #elf-image {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            max-width: 80%;
+            max-height: 80vh;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+            z-index: 200;
+            display: none;
+            opacity: 0;
+            animation: elfAppear 2s ease-out forwards;
+        }
+        
+        @keyframes elfAppear {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5) rotate(-10deg);
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.05) rotate(2deg);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
         }
         
         #win-message {
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(34, 139, 34, 0.95);
-            color: white;
-            padding: 30px 50px;
-            border-radius: 15px;
-            font-size: 2em;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: linear-gradient(135deg, #c41e3a 0%, #165b33 100%);
+            color: #fff;
+            padding: 40px 60px;
+            border-radius: 20px;
+            font-size: 2.5em;
+            font-weight: bold;
             text-align: center;
-            z-index: 200;
+            z-index: 201;
             display: none;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            opacity: 0;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.2);
+            border: 3px solid gold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            animation: messageAppear 1s ease-out 2.5s forwards;
+        }
+        
+        @keyframes messageAppear {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        
+        .snowflake {
+            position: fixed;
+            top: -10px;
+            color: #fff;
+            font-size: 1.5em;
+            z-index: 202;
+            pointer-events: none;
+            animation: fall linear infinite;
+        }
+        
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            z-index: 202;
+            pointer-events: none;
+            animation: confettiFall linear forwards;
+        }
+        
+        @keyframes confettiFall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
         }
 
         .controls {
@@ -294,11 +376,6 @@
                 flex-direction: column;
                 gap: 20px;
             }
-            
-            #game-row {
-                flex-direction: column;
-                gap: 20px;
-            }
 
             #pieces-palette {
                 width: 100%;
@@ -430,23 +507,22 @@
             <h2>Peças</h2>
         </div>
 
-        <div id="game-row">
-            <div id="game-container" class="container">
-                <h2>Monte o Quadrado Aqui</h2>
-                <div id="gabarito"></div>
-                <div id="win-message">Parabéns!<br>Você conseguiu!</div>
-            </div>
-            
-            <div class="controls container">
-                <h2>Controles</h2>
-                <ul>
-                    <li><strong>Arrastar:</strong> Mouse/toque</li>
-                    <li><strong>Girar 45°:</strong> Tecla 'R' ou botão</li>
-                    <li><strong>Inverter:</strong> Tecla 'F' ou botão</li>
-                </ul>
-                <button id="check-button">Verificar Encaixe</button>
-                <button id="reset-button">Reiniciar Jogo</button>
-            </div>
+        <div id="game-container" class="container">
+            <h2>Monte o Quadrado Aqui</h2>
+            <div id="gabarito"></div>
+            <div id="win-message">Parabéns!<br>Você conseguiu!</div>
+        </div>
+        
+        <div class="controls container">
+            <h2>Controles</h2>
+            <ul>
+                <li><strong>Arrastar:</strong> Mouse/toque</li>
+                <li><strong>Girar 45°:</strong> Tecla 'R' ou botão</li>
+                <li><strong>Inverter:</strong> Tecla 'F' ou botão</li>
+            </ul>
+            <button id="check-button">Verificar Encaixe</button>
+            <button id="reset-button">Reiniciar Jogo</button>
+            <button id="test-animation-button" style="background: linear-gradient(135deg, #c41e3a, #165b33); margin-top: 10px;">🎄 Testar Animação Natalina</button>
         </div>
     </div>
 
@@ -454,6 +530,10 @@
         <button id="rotate-button">R</button>
         <button id="flip-button">F</button>
     </div>
+    
+    <!-- Elementos de animação natalina -->
+    <div id="christmas-overlay"></div>
+    <img id="elf-image" src="elfo.png" alt="Elfo Natalino" />
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -739,16 +819,124 @@
                 
                 // Tolerância ampla: 85% a 115% (aceita pequenos gaps e sobreposições)
                 if (coverage >= 85 && coverage <= 115) {
-                    winMessage.style.display = 'block';
                     console.log(`✅ Vitória! Cobertura: ${coverage.toFixed(2)}%`);
+                    showChristmasVictory();
                 } else {
                     alert(`Continue tentando! As peças precisam cobrir o quadrado completamente.\n(Cobertura atual: ${coverage.toFixed(1)}%)`);
                     console.log(`❌ Cobertura: ${coverage.toFixed(2)}% (ideal: 85-115%)`);
                 }
             }
 
-            resetButton.addEventListener('click', initializeGame);
+            // Função de animação natalina de vitória
+            function showChristmasVictory() {
+                const overlay = document.getElementById('christmas-overlay');
+                const elfImage = document.getElementById('elf-image');
+                const winMessage = document.getElementById('win-message');
+                const pieces = gameContainer.querySelectorAll('.tangram-piece');
+                
+                // 1. Dissolver peças (fade out)
+                pieces.forEach((piece, index) => {
+                    setTimeout(() => {
+                        piece.style.transition = 'opacity 0.5s ease-out';
+                        piece.style.opacity = '0';
+                    }, index * 100);
+                });
+                
+                // 2. Mostrar overlay natalino
+                setTimeout(() => {
+                    overlay.style.display = 'block';
+                    setTimeout(() => overlay.classList.add('show'), 50);
+                }, 800);
+                
+                // 3. Mostrar imagem do elfo
+                setTimeout(() => {
+                    elfImage.style.display = 'block';
+                }, 1500);
+                
+                // 4. Criar neve caindo
+                setTimeout(() => {
+                    createSnowfall();
+                }, 2000);
+                
+                // 5. Criar confete
+                setTimeout(() => {
+                    createConfetti();
+                }, 2500);
+                
+                // 6. Mostrar mensagem de vitória
+                setTimeout(() => {
+                    winMessage.style.display = 'block';
+                }, 3000);
+            }
+            
+            // Criar neve caindo
+            function createSnowfall() {
+                const snowflakeCount = 50;
+                for (let i = 0; i < snowflakeCount; i++) {
+                    setTimeout(() => {
+                        const snowflake = document.createElement('div');
+                        snowflake.className = 'snowflake';
+                        snowflake.textContent = '❄';
+                        snowflake.style.left = Math.random() * 100 + '%';
+                        snowflake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                        snowflake.style.fontSize = (Math.random() * 1 + 0.5) + 'em';
+                        snowflake.style.opacity = Math.random() * 0.7 + 0.3;
+                        document.body.appendChild(snowflake);
+                        
+                        setTimeout(() => snowflake.remove(), 5000);
+                    }, i * 100);
+                }
+            }
+            
+            // Criar confete
+            function createConfetti() {
+                const confettiCount = 100;
+                const colors = ['#c41e3a', '#165b33', '#ffd700', '#ffffff', '#ff6b6b'];
+                
+                for (let i = 0; i < confettiCount; i++) {
+                    setTimeout(() => {
+                        const confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        confetti.style.left = Math.random() * 100 + '%';
+                        confetti.style.top = '-10px';
+                        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                        confetti.style.animationDelay = (Math.random() * 0.5) + 's';
+                        document.body.appendChild(confetti);
+                        
+                        setTimeout(() => confetti.remove(), 4500);
+                    }, i * 30);
+                }
+            }
+            
+            resetButton.addEventListener('click', () => {
+                // Limpar animações natalinas
+                document.getElementById('christmas-overlay').style.display = 'none';
+                document.getElementById('christmas-overlay').classList.remove('show');
+                document.getElementById('elf-image').style.display = 'none';
+                document.getElementById('win-message').style.display = 'none';
+                document.querySelectorAll('.snowflake, .confetti').forEach(el => el.remove());
+                
+                initializeGame();
+            });
             checkButton.addEventListener('click', checkWinCondition);
+            
+            // Botão de teste de animação (para demonstração)
+            const testAnimationButton = document.getElementById('test-animation-button');
+            if (testAnimationButton) {
+                testAnimationButton.addEventListener('click', () => {
+                    // Mover todas as peças para o game-container para simular jogo completo
+                    const pieces = piecesPalette.querySelectorAll('.tangram-piece');
+                    pieces.forEach((piece, index) => {
+                        gameContainer.appendChild(piece);
+                        piece.style.left = (50 + index * 30) + 'px';
+                        piece.style.top = (50 + index * 30) + 'px';
+                    });
+                    
+                    // Acionar animação
+                    setTimeout(() => showChristmasVictory(), 500);
+                });
+            }
             
             initializeGame();
         });
