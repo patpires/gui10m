@@ -7,13 +7,12 @@
     <style>
         /* --- ESTRUTURA GERAL E LAYOUT --- */
         :root {
-            /* Definimos L (o lado do quadrado) como 400px para desktop. Todas as peças são baseadas nisso. */
+            /* Definimos L (o lado do quadrado) como 400px. Todas as peças são baseadas nisso. */
             --L: 400px;
             --cor-fundo: #f0f0f0;
             --cor-container: #ffffff;
             --cor-borda: #cccccc;
             --cor-sombra: rgba(0, 0, 0, 0.1);
-            --mobile-L: 280px; /* Tamanho L para mobile */
         }
 
         body {
@@ -29,7 +28,7 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-            touch-action: manipulation; /* Permite gestos padrão do navegador, mas peças terão 'none' */
+            touch-action: manipulation; /* Permite gestos padrão do navegador, mas peças terão touch-action: none */
         }
 
         h1, h2 {
@@ -39,12 +38,12 @@
 
         #game-area {
             display: flex;
-            flex-wrap: wrap; /* Permite que os containers quebrem linha em telas menores */
+            flex-wrap: wrap; /* Permite que os elementos quebrem a linha em telas menores */
             justify-content: center;
             gap: 30px;
             margin-top: 20px;
-            width: 100%; /* Ocupa toda a largura disponível */
-            max-width: 1200px; /* Limite para desktop */
+            width: 100%; /* Ocupa a largura total para permitir o flex-wrap */
+            max-width: 1200px; /* Limita a largura total do jogo */
         }
 
         .container {
@@ -53,14 +52,13 @@
             border-radius: 12px;
             box-shadow: 0 4px 15px var(--cor-sombra);
             border: 1px solid var(--cor-borda);
-            flex-shrink: 0; /* Não encolhe */
         }
 
         #game-container {
             width: calc(var(--L) + 40px); /* L + padding */
             height: calc(var(--L) + 40px); /* L + padding */
             position: relative;
-            overflow: hidden; /* Para garantir que as peças não saiam do container */
+            overflow: hidden; /* Garante que as peças não saiam do container */
         }
 
         #gabarito {
@@ -71,17 +69,17 @@
             top: 20px;
             left: 20px;
             box-sizing: border-box;
-            pointer-events: none; /* Não interfere com o clique do mouse/touch */
+            pointer-events: none; /* Não interfere com o clique do mouse */
         }
         
         #pieces-palette {
             position: relative;
-            width: 280px; /* Largura fixa para a paleta em desktop */
-            height: calc(var(--L) + 40px); /* Altura da paleta em desktop */
+            width: 280px; /* Largura fixa para a paleta no desktop */
+            height: calc(var(--L) + 40px); /* Altura igual ao game-container */
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start; /* Alinha peças ao topo */
+            overflow-y: auto; /* Para rolagem se houver muitas peças */
         }
         
         #win-message {
@@ -103,7 +101,7 @@
         /* --- CONTROLES E INSTRUÇÕES --- */
         .controls {
             text-align: center;
-            width: 280px; /* Largura fixa para controles em desktop */
+            width: 280px; /* Largura fixa para controles no desktop */
         }
         .controls ul {
             list-style: none;
@@ -122,7 +120,6 @@
             cursor: pointer;
             transition: background-color 0.3s, transform 0.1s;
             margin: 5px;
-            min-width: 120px; /* Garante tamanho mínimo para botões */
         }
         #check-button { background-color: #007BFF; }
         #check-button:hover { background-color: #0056b3; }
@@ -130,22 +127,27 @@
         #reset-button:hover { background-color: #c82333; }
         .controls button:active { transform: scale(0.95); }
 
-        /* --- BOTÕES MÓVEIS (R e F) --- */
+        /* Botões R/F para Mobile */
         #mobile-controls {
             position: fixed;
             bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            right: 20px;
             display: flex;
-            gap: 15px;
+            gap: 10px;
             z-index: 150;
-            display: none; /* Escondido por padrão, mostrado via JS */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #mobile-controls.active {
+            opacity: 1;
+            visibility: visible;
         }
         #mobile-controls button {
-            width: 60px; /* Tamanho maior para toque */
-            height: 60px;
-            border-radius: 50%; /* Botões redondos */
-            font-size: 1.5em;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 1.8em;
             font-weight: bold;
             color: white;
             border: none;
@@ -156,21 +158,22 @@
             align-items: center;
             justify-content: center;
         }
-        #mobile-controls button:active {
+        #mobile-controls button:hover:not(:disabled) {
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+        #mobile-controls button:active:not(:disabled) {
             transform: scale(0.95);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3) inset; /* Efeito de pressionado */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        #rotate-btn { background-color: #007BFF; } /* Azul */
-        #rotate-btn:hover:not(:disabled) { background-color: #0056b3; }
-        #flip-btn { background-color: #FFC107; } /* Amarelo */
-        #flip-btn:hover:not(:disabled) { background-color: #e0a800; }
-
         #mobile-controls button:disabled {
-            background-color: #cccccc;
+            background-color: #cccccc !important;
             cursor: not-allowed;
-            opacity: 0.6;
             box-shadow: none;
+            opacity: 0.7;
         }
+        #rotate-button { background-color: #007BFF; } /* Azul */
+        #flip-button { background-color: #FFC107; } /* Amarelo */
+
 
         /* --- PEÇAS DO TANGRAM --- */
         .tangram-piece {
@@ -184,7 +187,7 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-            touch-action: none; /* Impede o navegador de rolar/zoom ao arrastar */
+            touch-action: none; /* Impede o navegador de rolar/zoom ao arrastar a peça */
         }
 
         .tangram-piece.dragging {
@@ -197,10 +200,11 @@
         .tangram-piece.selected-piece {
             outline: 3px solid #007BFF;
             outline-offset: 3px;
+            z-index: 101; /* Garante que a peça selecionada esteja no topo */
         }
 
         /* 
-         CÁLCULO DAS DIMENSÕES (Baseado em L)
+         CÁLCULO DAS DIMENSÕES (Baseado em L = 400px)
          A geometria do Tangram dita as dimensões para o encaixe perfeito.
         */
         .triangle-big {
@@ -238,81 +242,104 @@
         #sq1 { background-color: #4CAF50; } /* Verde (Square 1) */
         #pr1 { background-color: #E91E63; } /* Rosa (Parallelogram 1) */
 
-        /* --- MEDIA QUERIES PARA RESPONSIVIDADE --- */
+        /* --- RESPONSIVIDADE --- */
         @media (max-width: 768px) {
             :root {
-                --L: var(--mobile-L); /* Reduz L para mobile */
+                --L: 300px; /* Reduz o tamanho do jogo para telas menores */
             }
             body {
                 padding: 10px;
+                font-size: 0.9em;
             }
-            h1 {
-                font-size: 1.8em;
-            }
-            h2 {
-                font-size: 1.2em;
-            }
+            h1 { font-size: 1.8em; }
+            h2 { font-size: 1.3em; }
+
             #game-area {
-                flex-direction: column; /* Empilha os containers */
+                flex-direction: column; /* Empilha os elementos verticalmente */
                 gap: 20px;
-                align-items: center;
             }
-            .container {
-                width: 95%; /* Ocupa quase toda a largura */
-                max-width: calc(var(--L) + 40px); /* Limita a largura para não ficar muito grande */
-                padding: 15px;
-            }
-            #game-container {
-                width: calc(var(--L) + 40px);
-                height: calc(var(--L) + 40px);
-            }
+
             #pieces-palette {
-                width: calc(var(--L) + 40px); /* Largura da paleta igual ao game-container */
-                height: auto; /* Altura automática para acomodar as peças */
-                display: flex;
-                flex-direction: row; /* Peças lado a lado */
-                flex-wrap: wrap; /* Quebra linha se necessário */
-                justify-content: center;
-                align-items: flex-start;
-                padding-bottom: 20px; /* Espaço extra para peças */
+                width: 100%; /* Largura total */
+                height: auto; /* Altura automática */
+                min-height: 150px; /* Altura mínima para a paleta */
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Grid 2x4 adaptável */
+                gap: 10px;
+                padding: 15px;
+                box-sizing: border-box;
             }
             #pieces-palette h2 {
-                width: 100%; /* Título ocupa toda a largura */
-                margin-bottom: 15px;
+                grid-column: 1 / -1; /* Título ocupa todas as colunas */
             }
-            .tangram-piece {
-                position: static; /* Peças na paleta voltam ao fluxo normal */
-                margin: 5px; /* Espaçamento entre as peças na paleta */
-                transform: none !important; /* Remove transformações iniciais na paleta */
-                border: 1px solid rgba(0, 0, 0, 0.2);
+            /* Ajusta as peças na paleta para o layout de grid */
+            #pieces-palette .tangram-piece {
+                position: relative; /* Muda para relativo para fluir no grid */
+                top: auto !important; /* Sobrescreve estilos inline */
+                left: auto !important; /* Sobrescreve estilos inline */
+                margin: auto; /* Centraliza as peças nas células do grid */
+                transform: none !important; /* Reseta a transformação para exibição na paleta */
+                border: 1px solid rgba(0, 0, 0, 0.3); /* Garante que a borda seja visível */
             }
+            /* Ajustes de tamanho específicos para peças na paleta para caber no grid */
+            #pieces-palette .triangle-big { width: calc(var(--L) / 1.41421356 * 0.7); height: calc(var(--L) / 1.41421356 * 0.7); }
+            #pieces-palette .triangle-medium { width: calc(var(--L) / 2 * 0.7); height: calc(var(--L) / 2 * 0.7); }
+            #pieces-palette .triangle-small { width: calc(var(--L) / (2 * 1.41421356) * 0.7); height: calc(var(--L) / (2 * 1.41421356) * 0.7); }
+            #pieces-palette .square { width: calc(var(--L) / (2 * 1.41421356) * 0.7); height: calc(var(--L) / (2 * 1.41421356) * 0.7); }
+            #pieces-palette .parallelogram { width: calc(var(--L) / 2 * 0.7); height: calc(var(--L) / 4 * 0.7); }
+
+
+            #game-container {
+                width: calc(var(--L) + 20px); /* Ajusta para L menor */
+                height: calc(var(--L) + 20px);
+                margin: 0 auto; /* Centraliza o container do jogo */
+            }
+            #gabarito {
+                top: 10px;
+                left: 10px;
+            }
+
             .controls {
-                width: 95%;
-                max-width: calc(var(--L) + 40px);
+                width: 100%;
+                padding: 15px;
+                box-sizing: border-box;
             }
             .controls ul {
-                max-width: none; /* Remove limite de largura */
+                max-width: none;
                 text-align: center;
             }
             .controls li {
-                font-size: 0.9em;
+                display: inline-block;
+                margin: 0 10px 8px;
             }
             .controls button {
-                padding: 10px 20px;
+                width: calc(50% - 10px);
+                padding: 10px 15px;
                 font-size: 0.9em;
             }
-            #win-message {
+
+            #mobile-controls {
+                bottom: 10px;
+                right: 10px;
+                gap: 8px;
+            }
+            #mobile-controls button {
+                width: 60px; /* Botões menores para telas muito pequenas */
+                height: 60px;
                 font-size: 1.5em;
-                padding: 20px 30px;
             }
         }
 
         @media (max-width: 480px) {
             :root {
-                --mobile-L: 240px; /* Ainda menor para telas muito pequenas */
+                --L: 250px; /* Tamanho do jogo ainda menor */
             }
-            h1 {
-                font-size: 1.5em;
+            h1 { font-size: 1.5em; }
+            h2 { font-size: 1.1em; }
+            #mobile-controls {
+                bottom: 5px;
+                right: 5px;
+                gap: 5px;
             }
             #mobile-controls button {
                 width: 50px;
@@ -340,21 +367,21 @@
         </div>
         
         <div class="controls container">
-            <h2>Controles</h2>
+            <h2>Controles (Desktop)</h2>
             <ul>
-                <li><strong>Arrastar:</strong> Botão esquerdo do mouse / Toque.</li>
-                <li><strong>Girar 45°:</strong> Tecla 'R' (desktop) ou botão azul (mobile).</li>
-                <li><strong>Inverter:</strong> Tecla 'F' (desktop) ou botão amarelo (mobile, apenas paralelogramo).</li>
+                <li><strong>Arrastar:</strong> Botão esquerdo do mouse.</li>
+                <li><strong>Girar 45°:</strong> Tecla 'R' (na peça selecionada).</li>
+                <li><strong>Inverter:</strong> Tecla 'F' (no paralelogramo selecionado).</li>
             </ul>
             <button id="check-button">Verificar Encaixe</button>
             <button id="reset-button">Reiniciar Jogo</button>
         </div>
     </div>
 
-    <!-- Botões móveis para R e F -->
+    <!-- Controles Mobile (Botões R e F) -->
     <div id="mobile-controls">
-        <button id="rotate-btn" title="Girar peça (R)">R</button>
-        <button id="flip-btn" title="Inverter peça (F)">F</button>
+        <button id="rotate-button" onclick="rotateSelectedPiece()">R</button>
+        <button id="flip-button" onclick="flipSelectedPiece()">F</button>
     </div>
 
     <script>
@@ -365,20 +392,20 @@
             const checkButton = document.getElementById('check-button');
             const winMessage = document.getElementById('win-message');
             const mobileControls = document.getElementById('mobile-controls');
-            const rotateBtn = document.getElementById('rotate-btn');
-            const flipBtn = document.getElementById('flip-btn');
+            const rotateButton = document.getElementById('rotate-button');
+            const flipButton = document.getElementById('flip-button');
 
-            // Obter o valor de --L do CSS para garantir responsividade
-            let L_css = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--L'));
-            let L = L_css; // Usar L_css como base para cálculos JS
-            const L_2 = L / 2;
-            const L_4 = L / 4;
+            // Obtém o valor de --L do CSS, que pode mudar com media queries
+            const getLValue = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--L'));
+            let L = getLValue();
+            let L_2 = L / 2;
+            let L_4 = L / 4;
             const SQRT2 = Math.SQRT2; // 1.41421356...
             
             // --- CONFIGURAÇÃO DA SOLUÇÃO DO JOGO ---
+            // As coordenadas (x, y) são o canto superior esquerdo da caixa delimitadora
+            // da peça *antes* de qualquer transformação, em relação ao canto do GABARITO (0,0).
             const piecesConfig = {
-                // As coordenadas (x, y) são o canto superior esquerdo da caixa delimitadora
-                // da peça *antes* de qualquer transformação, em relação ao canto do GABARITO (0,0).
                 'tb1': { class: 'triangle-big', initial: { top: '50px', left: '0px' }, solution: { x: 0, y: L_2, r: 90, f: false } },
                 'tb2': { class: 'triangle-big', initial: { top: '50px', left: '50px' }, solution: { x: 0, y: 0, r: 0, f: false } },
                 'tm1': { class: 'triangle-medium', initial: { top: '200px', left: '40px' }, solution: { x: L_2, y: 0, r: 270, f: false } },
@@ -388,28 +415,34 @@
                 'pr1': { class: 'parallelogram', initial: { top: '150px', left: '0px' }, solution: { x: L_4, y: L_2, r: 90, f: true } }
             };
             
-            let draggedPiece = null;
             let selectedPiece = null;
-            let offsetX, offsetY;
-            let startX, startY; // Para diferenciar clique de arrasto
-            const DRAG_THRESHOLD = 10; // Pixels para considerar arrasto
-            const pieceStates = new Map(); // Map<HTMLElement, {rotation: number, flipped: boolean, parent: string, pointerId: number | null}>
+            let isDragging = false;
+            let offsetX, offsetY; // Deslocamento do ponteiro para o canto superior esquerdo da peça
+            const pieceStates = new Map(); // Armazena { rotation, flipped, parent } para cada peça
+
+            // Atualiza L e seus derivados quando a janela é redimensionada
+            window.addEventListener('resize', () => {
+                L = getLValue();
+                L_2 = L / 2;
+                L_4 = L / 4;
+                // Re-calcula as posições de solução se necessário, ou apenas usa os valores atualizados para verificação
+                // Para este jogo, as soluções são relativas a L, então os valores de solution.x/y não precisam ser re-calculados,
+                // mas a verificação de vitória usará os novos L_2, L_4 etc.
+            });
 
             // --- FUNÇÕES PRINCIPAIS DO JOGO ---
 
             function initializeGame() {
-                // Atualiza L caso a tela tenha sido redimensionada (para mobile)
-                L_css = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--L'));
-                L = L_css;
-
                 piecesPalette.innerHTML = '<h2>Peças</h2>';
                 gameContainer.querySelectorAll('.tangram-piece').forEach(p => p.remove());
                 winMessage.style.display = 'none';
 
-                if(selectedPiece) selectedPiece.classList.remove('selected-piece');
+                if(selectedPiece) {
+                    selectedPiece.classList.remove('selected-piece');
+                }
                 selectedPiece = null;
-                draggedPiece = null;
-                mobileControls.style.display = 'none'; // Esconde controles mobile
+                isDragging = false;
+                pieceStates.clear(); // Limpa estados anteriores
 
                 for (const id in piecesConfig) {
                     const config = piecesConfig[id];
@@ -417,20 +450,17 @@
                     piece.id = id;
                     piece.className = `tangram-piece ${config.class}`;
                     
-                    // Para peças na paleta, o posicionamento é estático (CSS media query)
-                    // Mas para o JS, precisamos que elas tenham um 'top' e 'left' inicial
-                    // para quando forem arrastadas para o game-container.
-                    // Em mobile, as peças na paleta são 'position: static', então o 'top'/'left' não se aplicam diretamente.
-                    // Apenas definimos para quando forem movidas para o game-container.
+                    // Aplica a posição inicial para a paleta
                     piece.style.top = config.initial.top;
                     piece.style.left = config.initial.left;
-
-                    pieceStates.set(piece, { rotation: 0, flipped: false, parent: 'palette', pointerId: null });
-                    applyTransform(piece);
+                    
+                    pieceStates.set(piece, { rotation: 0, flipped: false, parent: 'palette' });
+                    applyTransform(piece); // Aplica a transformação inicial (sem rotação/inversão)
 
                     piecesPalette.appendChild(piece);
                     piece.addEventListener('pointerdown', onPiecePointerDown);
                 }
+                updateButtonStates(); // Atualiza o estado dos botões R/F
             }
 
             function applyTransform(piece) {
@@ -442,141 +472,128 @@
                 piece.style.transform = transform;
             }
 
-            function updateMobileControls() {
-                if (selectedPiece) {
-                    mobileControls.style.display = 'flex';
-                    flipBtn.disabled = (selectedPiece.id !== 'pr1');
-                } else {
-                    mobileControls.style.display = 'none';
-                }
-            }
-
-            function rotatePiece(piece) {
-                if (!piece) return;
-                const state = pieceStates.get(piece);
-                state.rotation = (state.rotation + 45) % 360;
-                applyTransform(piece);
-            }
-
-            function flipPiece(piece) {
-                const state = pieceStates.get(piece);
-                state.flipped = !state.flipped;
-                applyTransform(piece);
-            }
-
-            // --- LÓGICA DE SELEÇÃO, ARRASTO E SOLTURA (Pointer Events) ---
+            // --- LÓGICA DE SELEÇÃO, ARRASTO E SOLTURA (POINTER EVENTS) ---
 
             function onPiecePointerDown(e) {
+                e.preventDefault(); // Previne ações padrão do navegador (seleção de texto, rolagem)
+
                 const currentPiece = e.target.closest('.tangram-piece');
                 if (!currentPiece) return;
 
-                // Seleciona a peça
+                // Desseleciona a peça anterior se uma diferente for clicada
                 if (selectedPiece && selectedPiece !== currentPiece) {
                     selectedPiece.classList.remove('selected-piece');
                 }
+                
                 selectedPiece = currentPiece;
                 selectedPiece.classList.add('selected-piece');
-                updateMobileControls(); // Atualiza visibilidade/estado dos botões mobile
+                updateButtonStates(); // Atualiza os botões R/F
 
-                // Inicia o arrasto
-                draggedPiece = selectedPiece;
-                draggedPiece.classList.add('dragging');
-                pieceStates.get(draggedPiece).pointerId = e.pointerId; // Armazena o ID do ponteiro
-
-                const rect = draggedPiece.getBoundingClientRect();
-                offsetX = e.clientX - rect.left;
-                offsetY = e.clientY - rect.top;
-                startX = e.clientX;
-                startY = e.clientY;
-
-                // Move a peça da paleta para o game-container se necessário
-                if (pieceStates.get(draggedPiece).parent === 'palette') {
+                isDragging = true;
+                selectedPiece.classList.add('dragging');
+                
+                // Se a peça estiver na paleta, move-a para o container do jogo
+                const pieceState = pieceStates.get(selectedPiece);
+                if (pieceState.parent === 'palette') {
                     const paletteRect = piecesPalette.getBoundingClientRect();
                     const gameRect = gameContainer.getBoundingClientRect();
                     
-                    // Calcula a posição da peça em relação ao game-container
-                    // Quando a peça está na paleta, ela pode ter position: static.
-                    // Precisamos calcular sua posição real na tela e converter para a posição relativa ao game-container.
-                    const currentPieceRect = draggedPiece.getBoundingClientRect();
-                    draggedPiece.style.left = `${currentPieceRect.left - gameRect.left}px`;
-                    draggedPiece.style.top = `${currentPieceRect.top - gameRect.top}px`;
+                    // Calcula a posição atual da peça em relação ao documento
+                    const pieceDocLeft = paletteRect.left + currentLeftInPalette;
+                    const pieceDocTop = paletteRect.top + currentTopInPalette;
+
+                    // Define a posição da peça em relação ao gameContainer
+                    selectedPiece.style.left = `${pieceDocLeft - gameRect.left}px`;
+                    selectedPiece.style.top = `${pieceDocTop - gameRect.top}px`;
                     
-                    // Muda para position: absolute para poder ser arrastada
-                    draggedPiece.style.position = 'absolute'; 
-                    gameContainer.appendChild(draggedPiece);
-                    pieceStates.get(draggedPiece).parent = 'game';
+                    gameContainer.appendChild(selectedPiece);
+                    pieceState.parent = 'game';
                 }
 
-                // Captura o ponteiro para que o arrasto continue mesmo se o ponteiro sair da peça
-                draggedPiece.setPointerCapture(e.pointerId);
+                // Calcula o offset para o arrasto
+                const rect = selectedPiece.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
 
-                document.addEventListener('pointermove', onPiecePointerMove);
-                document.addEventListener('pointerup', onPiecePointerUp);
+                document.addEventListener('pointermove', onDocumentPointerMove);
+                document.addEventListener('pointerup', onDocumentPointerUp);
             }
 
-            function onPiecePointerMove(e) {
+            function onDocumentPointerMove(e) {
 
                 const gameRect = gameContainer.getBoundingClientRect();
                 let newLeft = e.clientX - gameRect.left - offsetX;
                 let newTop = e.clientY - gameRect.top - offsetY;
 
-                // Limita o arrasto dentro do game-container
-                newLeft = Math.max(0, Math.min(newLeft, gameContainer.offsetWidth - draggedPiece.offsetWidth));
-                newTop = Math.max(0, Math.min(newTop, gameContainer.offsetHeight - draggedPiece.offsetHeight));
-
-                draggedPiece.style.left = `${newLeft}px`;
-                draggedPiece.style.top = `${newTop}px`;
+                selectedPiece.style.left = `${newLeft}px`;
+                selectedPiece.style.top = `${newTop}px`;
             }
 
-            function onPiecePointerUp(e) {
+            function onDocumentPointerUp() {
+                if (!isDragging) return;
 
-                draggedPiece.classList.remove('dragging');
-                draggedPiece.releasePointerCapture(e.pointerId); // Libera a captura do ponteiro
-                pieceStates.get(draggedPiece).pointerId = null;
-
-                // Verifica se foi um clique ou um arrasto
-                const distance = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
-                if (distance < DRAG_THRESHOLD) {
-                    // Se foi um clique, apenas seleciona (já feito em onPiecePointerDown)
-                    // Não faz nada extra aqui, pois a seleção já foi tratada.
+                isDragging = false;
+                if (selectedPiece) {
+                    selectedPiece.classList.remove('dragging');
                 }
-
-                draggedPiece = null;
-                document.removeEventListener('pointermove', onPiecePointerMove);
-                document.removeEventListener('pointerup', onPiecePointerUp);
+                document.removeEventListener('pointermove', onDocumentPointerMove);
+                document.removeEventListener('pointerup', onDocumentPointerUp);
             }
 
-            // --- LÓGICA DE ROTAÇÃO E INVERSÃO PELO TECLADO (Desktop) ---
+            // Desseleciona a peça se clicar/tocar fora dela ou dos botões de controle
+            document.addEventListener('pointerdown', (e) => {
+                const clickedPiece = e.target.closest('.tangram-piece');
+
+                if (selectedPiece && !clickedPiece && !clickedControl) {
+                    selectedPiece.classList.remove('selected-piece');
+                    selectedPiece = null;
+                    updateButtonStates();
+                }
+            });
+
+            // --- FUNÇÕES PARA BOTÕES R E F ---
+            window.rotateSelectedPiece = function() {
+                if (!selectedPiece) return;
+                const state = pieceStates.get(selectedPiece);
+                state.rotation = (state.rotation + 45) % 360;
+                applyTransform(selectedPiece);
+            };
+
+            window.flipSelectedPiece = function() {
+                const state = pieceStates.get(selectedPiece);
+                state.flipped = !state.flipped;
+                applyTransform(selectedPiece);
+            };
+
+            function updateButtonStates() {
+                if (selectedPiece) {
+                    mobileControls.classList.add('active');
+                    rotateButton.disabled = false;
+                    if (selectedPiece.id === 'pr1') {
+                        flipButton.disabled = false;
+                    } else {
+                        flipButton.disabled = true;
+                    }
+                } else {
+                    mobileControls.classList.remove('active');
+                    rotateButton.disabled = true;
+                    flipButton.disabled = true;
+                }
+            }
+
+            // --- LÓGICA DE ROTAÇÃO E INVERSÃO PELO TECLADO (DESKTOP) ---
             document.addEventListener('keydown', (e) => {
                 if (!selectedPiece) return;
 
+                const state = pieceStates.get(selectedPiece);
+
                     e.preventDefault();
-                    rotatePiece(selectedPiece);
+                    state.rotation = (state.rotation + 45) % 360;
+                    applyTransform(selectedPiece);
                 } 
                     e.preventDefault();
-                    flipPiece(selectedPiece);
-                }
-            });
-
-            // --- LÓGICA DE ROTAÇÃO E INVERSÃO PELOS BOTÕES MÓVEIS ---
-            rotateBtn.addEventListener('click', () => {
-                if (selectedPiece) {
-                    rotatePiece(selectedPiece);
-                }
-            });
-
-            flipBtn.addEventListener('click', () => {
-                if (selectedPiece) {
-                    flipPiece(selectedPiece);
-                }
-            });
-
-            // Clicar fora da peça deseleciona
-            document.addEventListener('pointerdown', (e) => {
-                if (!e.target.closest('.tangram-piece') && !e.target.closest('#mobile-controls') && selectedPiece) {
-                    selectedPiece.classList.remove('selected-piece');
-                    selectedPiece = null;
-                    updateMobileControls(); // Esconde os botões mobile
+                    state.flipped = !state.flipped;
+                    applyTransform(selectedPiece);
                 }
             });
 
@@ -595,7 +612,7 @@
                 const gabaritoRect = document.getElementById('gabarito').getBoundingClientRect();
                 const gameRect = gameContainer.getBoundingClientRect();
                 
-                // Offset do gabarito em relação ao game-container
+                // Calcula a posição do gabarito em relação ao canto superior esquerdo (0,0) do gameContainer
                 const gabaritoOffsetX = gabaritoRect.left - gameRect.left;
                 const gabaritoOffsetY = gabaritoRect.top - gameRect.top;
 
@@ -603,31 +620,31 @@
                     const state = pieceStates.get(piece);
                     const solution = piecesConfig[piece.id].solution;
                     
-                    // 1. Calcular o centro da peça ATUAL na tela.
-                    //    'style.left' e 'offsetWidth' referem-se à caixa original, não transformada,
-                    //    o que é exatamente o que precisamos para ter um ponto de referência estável.
+                    // Obtém a posição atual da peça em relação ao gameContainer
 
-                    // Ajusta o centro para ser relativo ao gabarito, não ao game-container
+                    // Calcula o centro da peça atual em relação ao gameContainer
+                    const currentPieceCenterX = currentPieceLeft + piece.offsetWidth / 2;
+                    const currentPieceCenterY = currentPieceTop + piece.offsetHeight / 2;
+
+                    // Ajusta o centro atual para ser relativo ao canto superior esquerdo (0,0) do gabarito
                     const currentCenterX_RelativeToGabarito = currentPieceCenterX - gabaritoOffsetX;
                     const currentCenterY_RelativeToGabarito = currentPieceCenterY - gabaritoOffsetY;
 
-                    // 2. Calcular o centro ESPERADO da peça na solução.
-                    //    Como solution.x/y é o canto superior esquerdo, somamos metade da
-                    //    largura/altura originais para encontrar o centro esperado.
-                    //    `piece.offsetWidth/Height` nos dá as dimensões corretas da caixa original.
+                    // Calcula o centro esperado da peça em relação ao canto superior esquerdo (0,0) do gabarito
+                    // solution.x/y já estão definidos em relação ao canto superior esquerdo do gabarito
                     const solutionCenterX = solution.x + piece.offsetWidth / 2;
                     const solutionCenterY = solution.y + piece.offsetHeight / 2;
 
-                    // 3. Comparar os centros (posição)
+                    // 3. Compara os centros (posição)
                     const posCorrect = Math.abs(currentCenterX_RelativeToGabarito - solutionCenterX) < tolerancePos && 
                                        Math.abs(currentCenterY_RelativeToGabarito - solutionCenterY) < tolerancePos;
                     
-                    // 4. Comparar a rotação
+                    // 4. Compara a rotação
                     const normalizedCurrentRot = (state.rotation % 360 + 360) % 360;
                     const normalizedSolutionRot = (solution.r % 360 + 360) % 360;
                     const rotDiff = Math.abs(normalizedCurrentRot - normalizedSolutionRot);
 
-                    // 5. Comparar o estado de inversão
+                    // 5. Compara o estado de inversão
                     const flipCorrect = state.flipped === solution.f;
 
                     // Se qualquer verificação falhar, a peça está incorreta.
@@ -652,16 +669,8 @@
             resetButton.addEventListener('click', initializeGame);
             checkButton.addEventListener('click', checkWinCondition);
             
-            // Atualiza L e reinicia o jogo se a janela for redimensionada (útil para testar responsividade)
-            window.addEventListener('resize', () => {
-                const newL_css = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--L'));
-                if (newL_css !== L) { // Se L mudou devido a media query
-                    initializeGame();
-                }
-            });
-
             initializeGame();
         });
     </script>
 </body>
-    </html>
+</html>
