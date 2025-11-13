@@ -7,11 +7,13 @@
     <style>
         /* --- ESTRUTURA GERAL E LAYOUT --- */
         :root {
+            /* Definimos L (o lado do quadrado) como 400px para desktop. Todas as peças são baseadas nisso. */
             --L: 400px;
             --cor-fundo: #f0f0f0;
             --cor-container: #ffffff;
             --cor-borda: #cccccc;
             --cor-sombra: rgba(0, 0, 0, 0.1);
+            --mobile-L: 280px; /* Tamanho L para mobile */
         }
 
         body {
@@ -23,9 +25,11 @@
             margin: 0;
             padding: 20px;
             color: #333;
-            -webkit-user-select: none; /* Safari */
-            -ms-user-select: none; /* IE 10+ */
-            user-select: none; /* Padrão */
+            user-select: none; /* Impede a seleção de texto ao arrastar */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            touch-action: manipulation; /* Permite gestos padrão do navegador, mas peças terão 'none' */
         }
 
         h1, h2 {
@@ -35,11 +39,12 @@
 
         #game-area {
             display: flex;
-            flex-wrap: nowrap; /* Alterado para não quebrar linha por padrão */
+            flex-wrap: wrap; /* Permite que os containers quebrem linha em telas menores */
             justify-content: center;
             gap: 30px;
             margin-top: 20px;
-            width: 100%;
+            width: 100%; /* Ocupa toda a largura disponível */
+            max-width: 1200px; /* Limite para desktop */
         }
 
         .container {
@@ -48,13 +53,14 @@
             border-radius: 12px;
             box-shadow: 0 4px 15px var(--cor-sombra);
             border: 1px solid var(--cor-borda);
-            flex-shrink: 0; /* Impede que os containers encolham */
+            flex-shrink: 0; /* Não encolhe */
         }
 
         #game-container {
-            width: calc(var(--L) + 40px);
-            height: calc(var(--L) + 40px);
+            width: calc(var(--L) + 40px); /* L + padding */
+            height: calc(var(--L) + 40px); /* L + padding */
             position: relative;
+            overflow: hidden; /* Para garantir que as peças não saiam do container */
         }
 
         #gabarito {
@@ -65,16 +71,17 @@
             top: 20px;
             left: 20px;
             box-sizing: border-box;
-            pointer-events: none;
+            pointer-events: none; /* Não interfere com o clique do mouse/touch */
         }
         
         #pieces-palette {
             position: relative;
-            width: 280px;
-            height: calc(var(--L) + 40px);
+            width: 280px; /* Largura fixa para a paleta em desktop */
+            height: calc(var(--L) + 40px); /* Altura da paleta em desktop */
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-start; /* Alinha peças ao topo */
         }
         
         #win-message {
@@ -89,14 +96,14 @@
             font-size: 2em;
             text-align: center;
             z-index: 200;
-            display: none;
+            display: none; /* Começa escondido */
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
         /* --- CONTROLES E INSTRUÇÕES --- */
         .controls {
             text-align: center;
-            width: 280px;
+            width: 280px; /* Largura fixa para controles em desktop */
         }
         .controls ul {
             list-style: none;
@@ -107,7 +114,7 @@
         }
         .controls li { margin-bottom: 8px; }
         .controls button {
-            padding: 12px 20px;
+            padding: 12px 25px;
             font-size: 1em;
             color: white;
             border: none;
@@ -115,34 +122,69 @@
             cursor: pointer;
             transition: background-color 0.3s, transform 0.1s;
             margin: 5px;
-            width: calc(100% - 10px); /* Ocupa a largura total */
-            box-sizing: border-box;
+            min-width: 120px; /* Garante tamanho mínimo para botões */
         }
-        
         #check-button { background-color: #007BFF; }
         #check-button:hover { background-color: #0056b3; }
         #reset-button { background-color: #dc3545; }
         #reset-button:hover { background-color: #c82333; }
-        #rotate-button, #flip-button { background-color: #6c757d; } /* Cinza para botões de ação */
-        #rotate-button:hover, #flip-button:hover { background-color: #5a6268; }
+        .controls button:active { transform: scale(0.95); }
 
-        .controls button:active { transform: scale(0.98); }
-        .controls button:disabled {
+        /* --- BOTÕES MÓVEIS (R e F) --- */
+        #mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 150;
+            display: none; /* Escondido por padrão, mostrado via JS */
+        }
+        #mobile-controls button {
+            width: 60px; /* Tamanho maior para toque */
+            height: 60px;
+            border-radius: 50%; /* Botões redondos */
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s, box-shadow 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #mobile-controls button:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3) inset; /* Efeito de pressionado */
+        }
+        #rotate-btn { background-color: #007BFF; } /* Azul */
+        #rotate-btn:hover:not(:disabled) { background-color: #0056b3; }
+        #flip-btn { background-color: #FFC107; } /* Amarelo */
+        #flip-btn:hover:not(:disabled) { background-color: #e0a800; }
+
+        #mobile-controls button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
-            color: #888888;
+            opacity: 0.6;
+            box-shadow: none;
         }
-        .controls button:disabled:hover { background-color: #cccccc; }
-
 
         /* --- PEÇAS DO TANGRAM --- */
         .tangram-piece {
             position: absolute;
             cursor: grab;
-            transition: transform 0.15s ease-out, box-shadow 0.2s, outline 0.2s;
+            transition: transform 0.15s ease-out; /* Suaviza rotação/inversão */
             transform-origin: center center;
             box-sizing: border-box;
             border: 1px solid rgba(0, 0, 0, 0.3);
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            touch-action: none; /* Impede o navegador de rolar/zoom ao arrastar */
         }
 
         .tangram-piece.dragging {
@@ -151,51 +193,131 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.25);
         }
         
+        /* Estilo para a peça selecionada para feedback visual */
         .tangram-piece.selected-piece {
             outline: 3px solid #007BFF;
             outline-offset: 3px;
         }
 
-        .triangle-big { width: calc(var(--L) / 1.41421); height: calc(var(--L) / 1.41421); clip-path: polygon(0 0, 100% 0, 0 100%); }
-        .triangle-medium { width: calc(var(--L) / 2); height: calc(var(--L) / 2); clip-path: polygon(0 0, 100% 0, 0 100%); }
-        .triangle-small { width: calc(var(--L) / (2 * 1.41421)); height: calc(var(--L) / (2 * 1.41421)); clip-path: polygon(0 0, 100% 0, 0 100%); }
-        .square { width: calc(var(--L) / (2 * 1.41421)); height: calc(var(--L) / (2 * 1.41421)); }
-        .parallelogram { width: calc(var(--L) * 0.75); height: calc(var(--L) / 4); clip-path: polygon(33.33% 0%, 100% 0%, 66.67% 100%, 0% 100%); }
+        /* 
+         CÁLCULO DAS DIMENSÕES (Baseado em L)
+         A geometria do Tangram dita as dimensões para o encaixe perfeito.
+        */
+        .triangle-big {
+            width: calc(var(--L) / 1.41421356); /* L/sqrt(2) */
+            height: calc(var(--L) / 1.41421356);
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+        }
+        .triangle-medium {
+            width: calc(var(--L) / 2); /* L/2 */
+            height: calc(var(--L) / 2);
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+        }
+        .triangle-small {
+            width: calc(var(--L) / (2 * 1.41421356)); /* L/(2*sqrt(2)) */
+            height: calc(var(--L) / (2 * 1.41421356));
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+        }
+        .square {
+            width: calc(var(--L) / (2 * 1.41421356)); /* L/(2*sqrt(2)) */
+            height: calc(var(--L) / (2 * 1.41421356));
+        }
+        
+        .parallelogram {
+            width: calc(var(--L) / 2); 
+            height: calc(var(--L) / 4);
+            clip-path: polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%);
+        }
 
-        /* Cores */
-        #tb1 { background-color: #FFC107; } #tb2 { background-color: #03A9F4; } #tm1 { background-color: #F44336; }
-        #ts1 { background-color: #9C27B0; } #ts2 { background-color: #FF5722; } #sq1 { background-color: #4CAF50; }
-        #pr1 { background-color: #E91E63; }
+        /* Cores das Peças */
+        #tb1 { background-color: #FFC107; } /* Amarelo (Big Triangle 1) */
+        #tb2 { background-color: #03A9F4; } /* Azul Claro (Big Triangle 2) */
+        #tm1 { background-color: #F44336; } /* Vermelho (Medium Triangle 1) */
+        #ts1 { background-color: #9C27B0; } /* Roxo (Small Triangle 1) */
+        #ts2 { background-color: #FF5722; } /* Laranja Escuro (Small Triangle 2) */
+        #sq1 { background-color: #4CAF50; } /* Verde (Square 1) */
+        #pr1 { background-color: #E91E63; } /* Rosa (Parallelogram 1) */
 
-        /* --- LAYOUT RESPONSIVO PARA DISPOSITIVOS MÓVEIS --- */
-        @media (max-width: 1024px) {
+        /* --- MEDIA QUERIES PARA RESPONSIVIDADE --- */
+        @media (max-width: 768px) {
+            :root {
+                --L: var(--mobile-L); /* Reduz L para mobile */
+            }
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            h2 {
+                font-size: 1.2em;
+            }
             #game-area {
-                flex-direction: column;
-                align-items: center;
+                flex-direction: column; /* Empilha os containers */
                 gap: 20px;
+                align-items: center;
             }
             .container {
-                width: 95%;
-                max-width: 440px; /* Garante que não fique largo demais em tablets */
-                height: auto; /* Altura automática */
+                width: 95%; /* Ocupa quase toda a largura */
+                max-width: calc(var(--L) + 40px); /* Limita a largura para não ficar muito grande */
+                padding: 15px;
+            }
+            #game-container {
+                width: calc(var(--L) + 40px);
+                height: calc(var(--L) + 40px);
             }
             #pieces-palette {
-                flex-direction: row;
-                flex-wrap: wrap;
+                width: calc(var(--L) + 40px); /* Largura da paleta igual ao game-container */
+                height: auto; /* Altura automática para acomodar as peças */
+                display: flex;
+                flex-direction: row; /* Peças lado a lado */
+                flex-wrap: wrap; /* Quebra linha se necessário */
                 justify-content: center;
-                gap: 10px;
-                padding-top: 50px; /* Espaço para o H2 */
+                align-items: flex-start;
+                padding-bottom: 20px; /* Espaço extra para peças */
             }
-             #pieces-palette > h2 {
-                position: absolute;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-             }
+            #pieces-palette h2 {
+                width: 100%; /* Título ocupa toda a largura */
+                margin-bottom: 15px;
+            }
             .tangram-piece {
-                position: relative; /* Peças na paleta agora fluem normalmente */
-                top: auto !important;
-                left: auto !important;
+                position: static; /* Peças na paleta voltam ao fluxo normal */
+                margin: 5px; /* Espaçamento entre as peças na paleta */
+                transform: none !important; /* Remove transformações iniciais na paleta */
+                border: 1px solid rgba(0, 0, 0, 0.2);
+            }
+            .controls {
+                width: 95%;
+                max-width: calc(var(--L) + 40px);
+            }
+            .controls ul {
+                max-width: none; /* Remove limite de largura */
+                text-align: center;
+            }
+            .controls li {
+                font-size: 0.9em;
+            }
+            .controls button {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
+            #win-message {
+                font-size: 1.5em;
+                padding: 20px 30px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --mobile-L: 240px; /* Ainda menor para telas muito pequenas */
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            #mobile-controls button {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2em;
             }
         }
     </style>
@@ -214,270 +336,332 @@
             <h2>Monte o Quadrado Aqui</h2>
             <div id="gabarito"></div>
             <div id="win-message">Parabéns!<br>Você conseguiu!</div>
+            <!-- Peças arrastadas vêm para cá -->
         </div>
         
         <div class="controls container">
             <h2>Controles</h2>
-            <ul id="keyboard-instructions">
-                <li><strong>Arrastar:</strong> Clique/Toque e segure.</li>
-                <li><strong>Girar 45°:</strong> Tecla 'R'.</li>
-                <li><strong>Inverter:</strong> Tecla 'F' (paralelogramo).</li>
+            <ul>
+                <li><strong>Arrastar:</strong> Botão esquerdo do mouse / Toque.</li>
+                <li><strong>Girar 45°:</strong> Tecla 'R' (desktop) ou botão azul (mobile).</li>
+                <li><strong>Inverter:</strong> Tecla 'F' (desktop) ou botão amarelo (mobile, apenas paralelogramo).</li>
             </ul>
-            <!-- Botões para mobile -->
-            <button id="rotate-button" disabled>Girar Peça</button>
-            <button id="flip-button" disabled>Inverter Peça</button>
-            <hr style="margin: 20px 0; border: 1px solid #eee;">
             <button id="check-button">Verificar Encaixe</button>
             <button id="reset-button">Reiniciar Jogo</button>
         </div>
     </div>
 
+    <!-- Botões móveis para R e F -->
+    <div id="mobile-controls">
+        <button id="rotate-btn" title="Girar peça (R)">R</button>
+        <button id="flip-btn" title="Inverter peça (F)">F</button>
+    </div>
+
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const gameContainer = document.getElementById('game-container');
-        const piecesPalette = document.getElementById('pieces-palette');
-        const resetButton = document.getElementById('reset-button');
-        const checkButton = document.getElementById('check-button');
-        const winMessage = document.getElementById('win-message');
-        const rotateButton = document.getElementById('rotate-button');
-        const flipButton = document.getElementById('flip-button');
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameContainer = document.getElementById('game-container');
+            const piecesPalette = document.getElementById('pieces-palette');
+            const resetButton = document.getElementById('reset-button');
+            const checkButton = document.getElementById('check-button');
+            const winMessage = document.getElementById('win-message');
+            const mobileControls = document.getElementById('mobile-controls');
+            const rotateBtn = document.getElementById('rotate-btn');
+            const flipBtn = document.getElementById('flip-btn');
 
-        const L = 400; 
-        const TOLERANCE_POS = 15; // Aumentar tolerância para facilitar no mobile
-        const TOLERANCE_ROT = 10;
-        
-        const piecesConfig = {
-            'tb1': { class: 'triangle-big', solution: { x: 0, y: L/2, r: 90, f: false } },
-            'tb2': { class: 'triangle-big', solution: { x: 0, y: 0, r: 0, f: false } },
-            'tm1': { class: 'triangle-medium', solution: { x: L/2, y: 0, r: 270, f: false } },
-            'ts1': { class: 'triangle-small', solution: { x: L - L/4, y: L - L/4, r: 180, f: false } },
-            'ts2': { class: 'triangle-small', solution: { x: L/2, y: L/2, r: 270, f: false } },
-            'sq1': { class: 'square', solution: { x: L/4, y: L/4, r: 45, f: false } },
-            'pr1': { class: 'parallelogram', solution: { x: L/4, y: 0, r: 0, f: true } }
-        };
-        
-        let draggedPiece = null;
-        let selectedPiece = null;
-        let offsetX, offsetY;
-        const pieceStates = new Map();
-
-        function initializeGame() {
-            piecesPalette.innerHTML = '<h2>Peças</h2>';
-            gameContainer.querySelectorAll('.tangram-piece').forEach(p => p.remove());
-            winMessage.style.display = 'none';
-
-            if(selectedPiece) selectedPiece.classList.remove('selected-piece');
-            selectedPiece = null;
-            draggedPiece = null;
-
-            for (const id in piecesConfig) {
-                const config = piecesConfig[id];
-                const piece = document.createElement('div');
-                piece.id = id;
-                piece.className = `tangram-piece ${config.class}`;
-                
-                pieceStates.set(piece, { rotation: 0, flipped: false, parent: 'palette' });
-                applyTransform(piece);
-
-                piecesPalette.appendChild(piece);
-                
-                // Adiciona listeners para mouse e toque
-                piece.addEventListener('mousedown', startDrag);
-                piece.addEventListener('touchstart', startDrag, { passive: false });
-            }
-            updateControlButtonsState();
-        }
-
-        function applyTransform(piece) {
-            const state = pieceStates.get(piece);
-            let transform = `rotate(${state.rotation}deg)`;
-            if (state.flipped) {
-                transform += ' scaleX(-1)';
-            }
-            piece.style.transform = transform;
-        }
-
-        function updateControlButtonsState() {
-            if (!selectedPiece) {
-                rotateButton.disabled = true;
-                flipButton.disabled = true;
-            } else {
-                rotateButton.disabled = false;
-                flipButton.disabled = selectedPiece.id !== 'pr1';
-            }
-        }
-        
-        function selectPiece(piece) {
-            if (selectedPiece && selectedPiece !== piece) {
-                selectedPiece.classList.remove('selected-piece');
-            }
-            selectedPiece = piece;
-            if (selectedPiece) {
-                selectedPiece.classList.add('selected-piece');
-            }
-            updateControlButtonsState();
-        }
-
-        function startDrag(e) {
-            const currentPiece = e.target.closest('.tangram-piece');
-            if (!currentPiece) return;
-
-            selectPiece(currentPiece);
+            // Obter o valor de --L do CSS para garantir responsividade
+            let L_css = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--L'));
+            let L = L_css; // Usar L_css como base para cálculos JS
+            const L_2 = L / 2;
+            const L_4 = L / 4;
+            const SQRT2 = Math.SQRT2; // 1.41421356...
             
-            // Para eventos de mouse, só arrastar com botão esquerdo
-            if (e.type === 'mousedown' && e.button !== 0) return;
-
-            e.preventDefault(); // Previne scroll no mobile
-
-            draggedPiece = currentPiece;
-            draggedPiece.classList.add('dragging');
+            // --- CONFIGURAÇÃO DA SOLUÇÃO DO JOGO ---
+            const piecesConfig = {
+                // As coordenadas (x, y) são o canto superior esquerdo da caixa delimitadora
+                // da peça *antes* de qualquer transformação, em relação ao canto do GABARITO (0,0).
+                'tb1': { class: 'triangle-big', initial: { top: '50px', left: '0px' }, solution: { x: 0, y: L_2, r: 90, f: false } },
+                'tb2': { class: 'triangle-big', initial: { top: '50px', left: '50px' }, solution: { x: 0, y: 0, r: 0, f: false } },
+                'tm1': { class: 'triangle-medium', initial: { top: '200px', left: '40px' }, solution: { x: L_2, y: 0, r: 270, f: false } },
+                'ts1': { class: 'triangle-small', initial: { top: '350px', left: '10px' }, solution: { x: L_2 + L_4, y: L_2 + L_4, r: 180, f: false } },
+                'ts2': { class: 'triangle-small', initial: { top: '350px', left: '130px' }, solution: { x: L_2, y: L_2, r: 270, f: false } },
+                'sq1': { class: 'square', initial: { top: '220px', left: '130px' }, solution: { x: L_2 - L/(2*SQRT2)/2, y: L_2 - L/(2*SQRT2)/2, r: 45, f: false } },
+                'pr1': { class: 'parallelogram', initial: { top: '150px', left: '0px' }, solution: { x: L_4, y: L_2, r: 90, f: true } }
+            };
             
-            const rect = draggedPiece.getBoundingClientRect();
-            const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-            const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-            
-            offsetX = clientX - rect.left;
-            offsetY = clientY - rect.top;
+            let draggedPiece = null;
+            let selectedPiece = null;
+            let offsetX, offsetY;
+            let startX, startY; // Para diferenciar clique de arrasto
+            const DRAG_THRESHOLD = 10; // Pixels para considerar arrasto
+            const pieceStates = new Map(); // Map<HTMLElement, {rotation: number, flipped: boolean, parent: string, pointerId: number | null}>
 
-            if (pieceStates.get(draggedPiece).parent === 'palette') {
-                const paletteRect = piecesPalette.getBoundingClientRect();
-                
-                // Garante que a peça é absoluta para cálculo de posição
-                draggedPiece.style.position = 'absolute'; 
+            // --- FUNÇÕES PRINCIPAIS DO JOGO ---
 
-                // Converte a posição relativa da paleta para uma posição absoluta na página e depois para o game container
-                const gameRect = gameContainer.getBoundingClientRect();
-                draggedPiece.style.left = `${rect.left - gameRect.left}px`;
-                draggedPiece.style.top = `${rect.top - gameRect.top}px`;
-                
-                gameContainer.appendChild(draggedPiece);
-                pieceStates.get(draggedPiece).parent = 'game';
-            }
+            function initializeGame() {
+                // Atualiza L caso a tela tenha sido redimensionada (para mobile)
+                L_css = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--L'));
+                L = L_css;
 
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', stopDrag);
-            document.addEventListener('touchmove', drag, { passive: false });
-            document.addEventListener('touchend', stopDrag);
-        }
+                piecesPalette.innerHTML = '<h2>Peças</h2>';
+                gameContainer.querySelectorAll('.tangram-piece').forEach(p => p.remove());
+                winMessage.style.display = 'none';
 
-        function drag(e) {
-            if (!draggedPiece) return;
-            e.preventDefault(); // Previne scroll no mobile
-            
-            const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-            const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-
-            const gameRect = gameContainer.getBoundingClientRect();
-            draggedPiece.style.left = `${clientX - gameRect.left - offsetX}px`;
-            draggedPiece.style.top = `${clientY - gameRect.top - offsetY}px`;
-        }
-
-        function stopDrag() {
-            if (!draggedPiece) return;
-            draggedPiece.classList.remove('dragging');
-            draggedPiece = null;
-            
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('mouseup', stopDrag);
-            document.removeEventListener('touchmove', drag);
-            document.removeEventListener('touchend', stopDrag);
-        }
-        
-        function rotateSelectedPiece() {
-            if (!selectedPiece) return;
-            const state = pieceStates.get(selectedPiece);
-            state.rotation = (state.rotation + 45) % 360;
-            applyTransform(selectedPiece);
-        }
-
-        function flipSelectedPiece() {
-            if (!selectedPiece || selectedPiece.id !== 'pr1') return;
-            const state = pieceStates.get(selectedPiece);
-            state.flipped = !state.flipped;
-            applyTransform(selectedPiece);
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (!selectedPiece) return;
-            if (e.key === 'r' || e.key === 'R') {
-                e.preventDefault();
-                rotateSelectedPiece();
-            } else if (e.key === 'f' || e.key === 'F') {
-                e.preventDefault();
-                flipSelectedPiece();
-            }
-        });
-
-        document.addEventListener('mousedown', (e) => {
-            // Desseleciona se clicar fora de uma peça
-            if (!e.target.closest('.tangram-piece') && selectedPiece) {
-                selectedPiece.classList.remove('selected-piece');
+                if(selectedPiece) selectedPiece.classList.remove('selected-piece');
                 selectedPiece = null;
-                updateControlButtonsState();
-            }
-        });
+                draggedPiece = null;
+                mobileControls.style.display = 'none'; // Esconde controles mobile
 
-        function checkWinCondition() {
-            const piecesInGameArea = Array.from(gameContainer.querySelectorAll('.tangram-piece'));
-            if (piecesInGameArea.length !== 7) {
-                 alert('Por favor, mova todas as 7 peças para a área de montagem antes de verificar.');
-                 return;
-            }
+                for (const id in piecesConfig) {
+                    const config = piecesConfig[id];
+                    const piece = document.createElement('div');
+                    piece.id = id;
+                    piece.className = `tangram-piece ${config.class}`;
+                    
+                    // Para peças na paleta, o posicionamento é estático (CSS media query)
+                    // Mas para o JS, precisamos que elas tenham um 'top' e 'left' inicial
+                    // para quando forem arrastadas para o game-container.
+                    // Em mobile, as peças na paleta são 'position: static', então o 'top'/'left' não se aplicam diretamente.
+                    // Apenas definimos para quando forem movidas para o game-container.
+                    piece.style.top = config.initial.top;
+                    piece.style.left = config.initial.left;
 
-            let allCorrect = true;
-            const gabaritoRect = document.getElementById('gabarito').getBoundingClientRect();
+                    pieceStates.set(piece, { rotation: 0, flipped: false, parent: 'palette', pointerId: null });
+                    applyTransform(piece);
 
-            for (const piece of piecesInGameArea) {
-                const state = pieceStates.get(piece);
-                const solution = piecesConfig[piece.id].solution;
-                const rect = piece.getBoundingClientRect();
-                
-                // Posição do centro da peça em relação ao gabarito
-                const pieceCenterX = (rect.left + rect.width / 2) - gabaritoRect.left;
-                const pieceCenterY = (rect.top + rect.height / 2) - gabaritoRect.top;
-                
-                // Posição do centro da peça na solução
-                const solutionPiece = document.createElement('div');
-                solutionPiece.className = piece.className;
-                const solutionRect = solutionPiece.getBoundingClientRect();
-                const solutionCenterX = solution.x + solutionRect.width / 2;
-                const solutionCenterY = solution.y + solutionRect.height / 2;
-
-                const posCorrect = Math.abs(pieceCenterX - solutionCenterX) < TOLERANCE_POS && 
-                                   Math.abs(pieceCenterY - solutionCenterY) < TOLERANCE_POS;
-                
-                const normalizedCurrentRot = (state.rotation % 360 + 360) % 360;
-                const normalizedSolutionRot = (solution.r % 360 + 360) % 360;
-                const rotDiff = Math.abs(normalizedCurrentRot - normalizedSolutionRot);
-                const rotCorrect = rotDiff < TOLERANCE_ROT || (360 - rotDiff) < TOLERANCE_ROT;
-
-                const flipCorrect = state.flipped === solution.f;
-
-                if (!posCorrect || !rotCorrect || !flipCorrect) {
-                    allCorrect = false;
-                    console.log(`--- Peça ${piece.id} Incorreta ---`);
-                    console.log(`Posição (Centro): Esperado (${solutionCenterX.toFixed(1)}, ${solutionCenterY.toFixed(1)}), Atual (${pieceCenterX.toFixed(1)}, ${pieceCenterY.toFixed(1)})`);
-                    console.log(`Rotação: Esperado ${solution.r}, Atual ${state.rotation}`);
-                    console.log(`Inversão: Esperado ${solution.f}, Atual ${state.flipped}`);
-                    break;
+                    piecesPalette.appendChild(piece);
+                    piece.addEventListener('pointerdown', onPiecePointerDown);
                 }
             }
 
-            if (allCorrect) {
-                winMessage.style.display = 'block';
-            } else {
-                alert('Ainda não está correto. Continue tentando! (Verifique o console do navegador para dicas detalhadas)');
+            function applyTransform(piece) {
+                const state = pieceStates.get(piece);
+                let transform = `rotate(${state.rotation}deg)`;
+                if (state.flipped) {
+                    transform += ' scaleX(-1)';
+                }
+                piece.style.transform = transform;
             }
-        }
 
-        // --- INICIALIZAÇÃO E LISTENERS DOS BOTÕES ---
-        resetButton.addEventListener('click', initializeGame);
-        checkButton.addEventListener('click', checkWinCondition);
-        rotateButton.addEventListener('click', rotateSelectedPiece);
-        flipButton.addEventListener('click', flipSelectedPiece);
-        
-        initializeGame();
-    });
+            function updateMobileControls() {
+                if (selectedPiece) {
+                    mobileControls.style.display = 'flex';
+                    flipBtn.disabled = (selectedPiece.id !== 'pr1');
+                } else {
+                    mobileControls.style.display = 'none';
+                }
+            }
+
+            function rotatePiece(piece) {
+                if (!piece) return;
+                const state = pieceStates.get(piece);
+                state.rotation = (state.rotation + 45) % 360;
+                applyTransform(piece);
+            }
+
+            function flipPiece(piece) {
+                const state = pieceStates.get(piece);
+                state.flipped = !state.flipped;
+                applyTransform(piece);
+            }
+
+            // --- LÓGICA DE SELEÇÃO, ARRASTO E SOLTURA (Pointer Events) ---
+
+            function onPiecePointerDown(e) {
+                const currentPiece = e.target.closest('.tangram-piece');
+                if (!currentPiece) return;
+
+                // Seleciona a peça
+                if (selectedPiece && selectedPiece !== currentPiece) {
+                    selectedPiece.classList.remove('selected-piece');
+                }
+                selectedPiece = currentPiece;
+                selectedPiece.classList.add('selected-piece');
+                updateMobileControls(); // Atualiza visibilidade/estado dos botões mobile
+
+                // Inicia o arrasto
+                draggedPiece = selectedPiece;
+                draggedPiece.classList.add('dragging');
+                pieceStates.get(draggedPiece).pointerId = e.pointerId; // Armazena o ID do ponteiro
+
+                const rect = draggedPiece.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                // Move a peça da paleta para o game-container se necessário
+                if (pieceStates.get(draggedPiece).parent === 'palette') {
+                    const paletteRect = piecesPalette.getBoundingClientRect();
+                    const gameRect = gameContainer.getBoundingClientRect();
+                    
+                    // Calcula a posição da peça em relação ao game-container
+                    // Quando a peça está na paleta, ela pode ter position: static.
+                    // Precisamos calcular sua posição real na tela e converter para a posição relativa ao game-container.
+                    const currentPieceRect = draggedPiece.getBoundingClientRect();
+                    draggedPiece.style.left = `${currentPieceRect.left - gameRect.left}px`;
+                    draggedPiece.style.top = `${currentPieceRect.top - gameRect.top}px`;
+                    
+                    // Muda para position: absolute para poder ser arrastada
+                    draggedPiece.style.position = 'absolute'; 
+                    gameContainer.appendChild(draggedPiece);
+                    pieceStates.get(draggedPiece).parent = 'game';
+                }
+
+                // Captura o ponteiro para que o arrasto continue mesmo se o ponteiro sair da peça
+                draggedPiece.setPointerCapture(e.pointerId);
+
+                document.addEventListener('pointermove', onPiecePointerMove);
+                document.addEventListener('pointerup', onPiecePointerUp);
+            }
+
+            function onPiecePointerMove(e) {
+
+                const gameRect = gameContainer.getBoundingClientRect();
+                let newLeft = e.clientX - gameRect.left - offsetX;
+                let newTop = e.clientY - gameRect.top - offsetY;
+
+                // Limita o arrasto dentro do game-container
+                newLeft = Math.max(0, Math.min(newLeft, gameContainer.offsetWidth - draggedPiece.offsetWidth));
+                newTop = Math.max(0, Math.min(newTop, gameContainer.offsetHeight - draggedPiece.offsetHeight));
+
+                draggedPiece.style.left = `${newLeft}px`;
+                draggedPiece.style.top = `${newTop}px`;
+            }
+
+            function onPiecePointerUp(e) {
+
+                draggedPiece.classList.remove('dragging');
+                draggedPiece.releasePointerCapture(e.pointerId); // Libera a captura do ponteiro
+                pieceStates.get(draggedPiece).pointerId = null;
+
+                // Verifica se foi um clique ou um arrasto
+                const distance = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
+                if (distance < DRAG_THRESHOLD) {
+                    // Se foi um clique, apenas seleciona (já feito em onPiecePointerDown)
+                    // Não faz nada extra aqui, pois a seleção já foi tratada.
+                }
+
+                draggedPiece = null;
+                document.removeEventListener('pointermove', onPiecePointerMove);
+                document.removeEventListener('pointerup', onPiecePointerUp);
+            }
+
+            // --- LÓGICA DE ROTAÇÃO E INVERSÃO PELO TECLADO (Desktop) ---
+            document.addEventListener('keydown', (e) => {
+                if (!selectedPiece) return;
+
+                    e.preventDefault();
+                    rotatePiece(selectedPiece);
+                } 
+                    e.preventDefault();
+                    flipPiece(selectedPiece);
+                }
+            });
+
+            // --- LÓGICA DE ROTAÇÃO E INVERSÃO PELOS BOTÕES MÓVEIS ---
+            rotateBtn.addEventListener('click', () => {
+                if (selectedPiece) {
+                    rotatePiece(selectedPiece);
+                }
+            });
+
+            flipBtn.addEventListener('click', () => {
+                if (selectedPiece) {
+                    flipPiece(selectedPiece);
+                }
+            });
+
+            // Clicar fora da peça deseleciona
+            document.addEventListener('pointerdown', (e) => {
+                if (!e.target.closest('.tangram-piece') && !e.target.closest('#mobile-controls') && selectedPiece) {
+                    selectedPiece.classList.remove('selected-piece');
+                    selectedPiece = null;
+                    updateMobileControls(); // Esconde os botões mobile
+                }
+            });
+
+            // --- FUNÇÃO DE VERIFICAÇÃO DE VITÓRIA ---
+            function checkWinCondition() {
+                const tolerancePos = 15; // Tolerância em pixels para a posição do centro
+                const toleranceRot = 10; // Tolerância em graus para a rotação
+                
+                const piecesInGameArea = Array.from(gameContainer.querySelectorAll('.tangram-piece'));
+                if (piecesInGameArea.length !== 7) {
+                     alert('Por favor, mova todas as 7 peças para a área de montagem antes de verificar.');
+                     return;
+                }
+
+                let allCorrect = true;
+                const gabaritoRect = document.getElementById('gabarito').getBoundingClientRect();
+                const gameRect = gameContainer.getBoundingClientRect();
+                
+                // Offset do gabarito em relação ao game-container
+                const gabaritoOffsetX = gabaritoRect.left - gameRect.left;
+                const gabaritoOffsetY = gabaritoRect.top - gameRect.top;
+
+                for (const piece of piecesInGameArea) {
+                    const state = pieceStates.get(piece);
+                    const solution = piecesConfig[piece.id].solution;
+                    
+                    // 1. Calcular o centro da peça ATUAL na tela.
+                    //    'style.left' e 'offsetWidth' referem-se à caixa original, não transformada,
+                    //    o que é exatamente o que precisamos para ter um ponto de referência estável.
+
+                    // Ajusta o centro para ser relativo ao gabarito, não ao game-container
+                    const currentCenterX_RelativeToGabarito = currentPieceCenterX - gabaritoOffsetX;
+                    const currentCenterY_RelativeToGabarito = currentPieceCenterY - gabaritoOffsetY;
+
+                    // 2. Calcular o centro ESPERADO da peça na solução.
+                    //    Como solution.x/y é o canto superior esquerdo, somamos metade da
+                    //    largura/altura originais para encontrar o centro esperado.
+                    //    `piece.offsetWidth/Height` nos dá as dimensões corretas da caixa original.
+                    const solutionCenterX = solution.x + piece.offsetWidth / 2;
+                    const solutionCenterY = solution.y + piece.offsetHeight / 2;
+
+                    // 3. Comparar os centros (posição)
+                    const posCorrect = Math.abs(currentCenterX_RelativeToGabarito - solutionCenterX) < tolerancePos && 
+                                       Math.abs(currentCenterY_RelativeToGabarito - solutionCenterY) < tolerancePos;
+                    
+                    // 4. Comparar a rotação
+                    const normalizedCurrentRot = (state.rotation % 360 + 360) % 360;
+                    const normalizedSolutionRot = (solution.r % 360 + 360) % 360;
+                    const rotDiff = Math.abs(normalizedCurrentRot - normalizedSolutionRot);
+
+                    // 5. Comparar o estado de inversão
+                    const flipCorrect = state.flipped === solution.f;
+
+                    // Se qualquer verificação falhar, a peça está incorreta.
+                        allCorrect = false;
+                        console.log(`--- Peça ${piece.id} Incorreta ---`);
+                        console.log(`Centro Esperado (rel. gabarito): (${solutionCenterX.toFixed(1)}, ${solutionCenterY.toFixed(1)})`);
+                        console.log(`Centro Atual (rel. gabarito): (${currentCenterX_RelativeToGabarito.toFixed(1)}, ${currentCenterY_RelativeToGabarito.toFixed(1)}) -> Pos OK: ${posCorrect}`);
+                        console.log(`Rotação Esperada: ${solution.r}°, Atual: ${state.rotation}° -> Rot OK: ${rotCorrect}`);
+                        console.log(`Inversão Esperada: ${solution.f}, Atual: ${state.flipped} -> Flip OK: ${flipCorrect}`);
+                        // Não usamos 'break' para que todas as peças incorretas sejam logadas no console, ajudando a depurar.
+                    }
+                }
+
+                if (allCorrect) {
+                    winMessage.style.display = 'block';
+                } else {
+                    alert('Ainda não está correto. Continue tentando! (Verifique o console do navegador para dicas detalhadas)');
+                }
+            }
+
+            // --- INICIALIZAÇÃO E LISTENERS GERAIS ---
+            resetButton.addEventListener('click', initializeGame);
+            checkButton.addEventListener('click', checkWinCondition);
+            
+            // Atualiza L e reinicia o jogo se a janela for redimensionada (útil para testar responsividade)
+            window.addEventListener('resize', () => {
+                const newL_css = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--L'));
+                if (newL_css !== L) { // Se L mudou devido a media query
+                    initializeGame();
+                }
+            });
+
+            initializeGame();
+        });
     </script>
 </body>
-</html>
+    </html>
