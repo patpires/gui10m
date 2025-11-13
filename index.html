@@ -249,9 +249,9 @@
         }
         
         .parallelogram {
-            width: calc(var(--L) / 1.775);
-            height: calc(var(--L) / 4);
-            clip-path: polygon(22.5% 0%, 100% 0%, 77.5% 100%, 0% 100%);
+            width: calc(var(--L) / 1.41421356);
+            height: calc(var(--L) / (2 * 1.41421356));
+            clip-path: polygon(50% 0%, 100% 0%, 50% 100%, 0% 100%);
         }
 
         #tb1 { background-color: #FFC107; }
@@ -323,8 +323,8 @@
             }
             
             #pieces-palette .parallelogram { 
-                width: calc(var(--L) / 1.775 * 0.7); 
-                height: calc(var(--L) / 4 * 0.7); 
+                width: calc(var(--L) / 1.41421356 * 0.7); 
+                height: calc(var(--L) / (2 * 1.41421356) * 0.7); 
             }
 
             #game-container {
@@ -674,9 +674,10 @@
                     } else if (piece.classList.contains('square')) {
                         ctx.rect(0, 0, width, height);
                     } else if (piece.classList.contains('parallelogram')) {
-                        ctx.moveTo(width * 0.225, 0);
+                        // Paralelogramo
+                        ctx.moveTo(width * 0.5, 0);
                         ctx.lineTo(width, 0);
-                        ctx.lineTo(width * 0.775, height);
+                        ctx.lineTo(width * 0.5, height);
                         ctx.lineTo(0, height);
                         ctx.closePath();
                     }
@@ -723,3 +724,4 @@
         });
     </script>
 </body>
+</ht
