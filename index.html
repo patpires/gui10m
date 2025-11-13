@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jogo de Tangram Interativo</title>
     <style>
-        /* --- ESTRUTURA GERAL E LAYOUT --- */
         :root {
-            /* Definimos L (o lado do quadrado) como 400px. Todas as peças são baseadas nisso. */
             --L: 400px;
             --cor-fundo: #f0f0f0;
             --cor-container: #ffffff;
             --cor-borda: #cccccc;
             --cor-sombra: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
@@ -24,11 +26,9 @@
             margin: 0;
             padding: 20px;
             color: #333;
-            user-select: none; /* Impede a seleção de texto ao arrastar */
+            user-select: none;
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            touch-action: manipulation; /* Permite gestos padrão do navegador, mas peças terão touch-action: none */
+            touch-action: manipulation;
         }
 
         h1, h2 {
@@ -38,12 +38,12 @@
 
         #game-area {
             display: flex;
-            flex-wrap: wrap; /* Permite que os elementos quebrem a linha em telas menores */
+            flex-wrap: wrap;
             justify-content: center;
             gap: 30px;
             margin-top: 20px;
-            width: 100%; /* Ocupa a largura total para permitir o flex-wrap */
-            max-width: 1200px; /* Limita a largura total do jogo */
+            width: 100%;
+            max-width: 1200px;
         }
 
         .container {
@@ -55,10 +55,10 @@
         }
 
         #game-container {
-            width: calc(var(--L) + 40px); /* L + padding */
-            height: calc(var(--L) + 40px); /* L + padding */
+            width: calc(var(--L) + 40px);
+            height: calc(var(--L) + 40px);
             position: relative;
-            overflow: hidden; /* Garante que as peças não saiam do container */
+            overflow: visible;
         }
 
         #gabarito {
@@ -68,41 +68,40 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            box-sizing: border-box;
-            pointer-events: none; /* Não interfere com o clique do mouse */
+            pointer-events: none;
         }
         
         #pieces-palette {
             position: relative;
-            width: 280px; /* Largura fixa para a paleta no desktop */
-            height: calc(var(--L) + 40px); /* Altura igual ao game-container */
+            width: 280px;
+            height: calc(var(--L) + 40px);
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow-y: auto; /* Para rolagem se houver muitas peças */
+            overflow-y: auto;
         }
         
         #win-message {
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(34, 139, 34, 0.9);
+            background-color: rgba(34, 139, 34, 0.95);
             color: white;
             padding: 30px 50px;
             border-radius: 15px;
             font-size: 2em;
             text-align: center;
             z-index: 200;
-            display: none; /* Começa escondido */
+            display: none;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
-        /* --- CONTROLES E INSTRUÇÕES --- */
         .controls {
             text-align: center;
-            width: 280px; /* Largura fixa para controles no desktop */
+            width: 280px;
         }
+        
         .controls ul {
             list-style: none;
             padding: 0;
@@ -110,7 +109,11 @@
             margin: 15px auto;
             max-width: 220px;
         }
-        .controls li { margin-bottom: 8px; }
+        
+        .controls li { 
+            margin-bottom: 8px; 
+        }
+        
         .controls button {
             padding: 12px 25px;
             font-size: 1em;
@@ -121,13 +124,27 @@
             transition: background-color 0.3s, transform 0.1s;
             margin: 5px;
         }
-        #check-button { background-color: #007BFF; }
-        #check-button:hover { background-color: #0056b3; }
-        #reset-button { background-color: #dc3545; }
-        #reset-button:hover { background-color: #c82333; }
-        .controls button:active { transform: scale(0.95); }
+        
+        #check-button { 
+            background-color: #007BFF; 
+        }
+        
+        #check-button:hover { 
+            background-color: #0056b3; 
+        }
+        
+        #reset-button { 
+            background-color: #dc3545; 
+        }
+        
+        #reset-button:hover { 
+            background-color: #c82333; 
+        }
+        
+        .controls button:active { 
+            transform: scale(0.95); 
+        }
 
-        /* Botões R/F para Mobile */
         #mobile-controls {
             position: fixed;
             bottom: 20px;
@@ -139,10 +156,12 @@
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
         }
+        
         #mobile-controls.active {
             opacity: 1;
             visibility: visible;
         }
+        
         #mobile-controls button {
             width: 80px;
             height: 80px;
@@ -158,36 +177,40 @@
             align-items: center;
             justify-content: center;
         }
+        
         #mobile-controls button:hover:not(:disabled) {
             box-shadow: 0 6px 15px rgba(0,0,0,0.3);
         }
+        
         #mobile-controls button:active:not(:disabled) {
             transform: scale(0.95);
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
+        
         #mobile-controls button:disabled {
             background-color: #cccccc !important;
             cursor: not-allowed;
             box-shadow: none;
             opacity: 0.7;
         }
-        #rotate-button { background-color: #007BFF; } /* Azul */
-        #flip-button { background-color: #FFC107; } /* Amarelo */
+        
+        #rotate-button { 
+            background-color: #007BFF; 
+        }
+        
+        #flip-button { 
+            background-color: #FFC107; 
+        }
 
-
-        /* --- PEÇAS DO TANGRAM --- */
         .tangram-piece {
             position: absolute;
             cursor: grab;
-            transition: transform 0.15s ease-out; /* Suaviza rotação/inversão */
+            transition: transform 0.15s ease-out;
             transform-origin: center center;
-            box-sizing: border-box;
             border: 1px solid rgba(0, 0, 0, 0.3);
             user-select: none;
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            touch-action: none; /* Impede o navegador de rolar/zoom ao arrastar a peça */
+            touch-action: none;
         }
 
         .tangram-piece.dragging {
@@ -196,104 +219,120 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.25);
         }
         
-        /* Estilo para a peça selecionada para feedback visual */
         .tangram-piece.selected-piece {
             outline: 3px solid #007BFF;
             outline-offset: 3px;
-            z-index: 101; /* Garante que a peça selecionada esteja no topo */
+            z-index: 101;
         }
 
-        /* 
-         CÁLCULO DAS DIMENSÕES (Baseado em L = 400px)
-         A geometria do Tangram dita as dimensões para o encaixe perfeito.
-        */
         .triangle-big {
-            width: calc(var(--L) / 1.41421356); /* L/sqrt(2) */
+            width: calc(var(--L) / 1.41421356);
             height: calc(var(--L) / 1.41421356);
             clip-path: polygon(0 0, 100% 0, 0 100%);
         }
+        
         .triangle-medium {
-            width: calc(var(--L) / 2); /* L/2 */
+            width: calc(var(--L) / 2);
             height: calc(var(--L) / 2);
             clip-path: polygon(0 0, 100% 0, 0 100%);
         }
+        
         .triangle-small {
-            width: calc(var(--L) / (2 * 1.41421356)); /* L/(2*sqrt(2)) */
+            width: calc(var(--L) / (2 * 1.41421356));
             height: calc(var(--L) / (2 * 1.41421356));
             clip-path: polygon(0 0, 100% 0, 0 100%);
         }
+        
         .square {
-            width: calc(var(--L) / (2 * 1.41421356)); /* L/(2*sqrt(2)) */
+            width: calc(var(--L) / (2 * 1.41421356));
             height: calc(var(--L) / (2 * 1.41421356));
         }
         
         .parallelogram {
-            width: calc(var(--L) / 2); 
+            width: calc(var(--L) / 2);
             height: calc(var(--L) / 4);
             clip-path: polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%);
         }
 
-        /* Cores das Peças */
-        #tb1 { background-color: #FFC107; } /* Amarelo (Big Triangle 1) */
-        #tb2 { background-color: #03A9F4; } /* Azul Claro (Big Triangle 2) */
-        #tm1 { background-color: #F44336; } /* Vermelho (Medium Triangle 1) */
-        #ts1 { background-color: #9C27B0; } /* Roxo (Small Triangle 1) */
-        #ts2 { background-color: #FF5722; } /* Laranja Escuro (Small Triangle 2) */
-        #sq1 { background-color: #4CAF50; } /* Verde (Square 1) */
-        #pr1 { background-color: #E91E63; } /* Rosa (Parallelogram 1) */
+        #tb1 { background-color: #FFC107; }
+        #tb2 { background-color: #03A9F4; }
+        #tm1 { background-color: #F44336; }
+        #ts1 { background-color: #9C27B0; }
+        #ts2 { background-color: #FF5722; }
+        #sq1 { background-color: #4CAF50; }
+        #pr1 { background-color: #E91E63; }
 
-        /* --- RESPONSIVIDADE --- */
         @media (max-width: 768px) {
             :root {
-                --L: 300px; /* Reduz o tamanho do jogo para telas menores */
+                --L: 300px;
             }
+            
             body {
                 padding: 10px;
                 font-size: 0.9em;
             }
+            
             h1 { font-size: 1.8em; }
             h2 { font-size: 1.3em; }
 
             #game-area {
-                flex-direction: column; /* Empilha os elementos verticalmente */
+                flex-direction: column;
                 gap: 20px;
             }
 
             #pieces-palette {
-                width: 100%; /* Largura total */
-                height: auto; /* Altura automática */
-                min-height: 150px; /* Altura mínima para a paleta */
+                width: 100%;
+                height: auto;
+                min-height: 150px;
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Grid 2x4 adaptável */
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
                 gap: 10px;
                 padding: 15px;
-                box-sizing: border-box;
             }
+            
             #pieces-palette h2 {
-                grid-column: 1 / -1; /* Título ocupa todas as colunas */
+                grid-column: 1 / -1;
             }
-            /* Ajusta as peças na paleta para o layout de grid */
+            
             #pieces-palette .tangram-piece {
-                position: relative; /* Muda para relativo para fluir no grid */
-                top: auto !important; /* Sobrescreve estilos inline */
-                left: auto !important; /* Sobrescreve estilos inline */
-                margin: auto; /* Centraliza as peças nas células do grid */
-                transform: none !important; /* Reseta a transformação para exibição na paleta */
-                border: 1px solid rgba(0, 0, 0, 0.3); /* Garante que a borda seja visível */
+                position: relative;
+                top: auto !important;
+                left: auto !important;
+                margin: auto;
+                transform: none !important;
             }
-            /* Ajustes de tamanho específicos para peças na paleta para caber no grid */
-            #pieces-palette .triangle-big { width: calc(var(--L) / 1.41421356 * 0.7); height: calc(var(--L) / 1.41421356 * 0.7); }
-            #pieces-palette .triangle-medium { width: calc(var(--L) / 2 * 0.7); height: calc(var(--L) / 2 * 0.7); }
-            #pieces-palette .triangle-small { width: calc(var(--L) / (2 * 1.41421356) * 0.7); height: calc(var(--L) / (2 * 1.41421356) * 0.7); }
-            #pieces-palette .square { width: calc(var(--L) / (2 * 1.41421356) * 0.7); height: calc(var(--L) / (2 * 1.41421356) * 0.7); }
-            #pieces-palette .parallelogram { width: calc(var(--L) / 2 * 0.7); height: calc(var(--L) / 4 * 0.7); }
-
+            
+            #pieces-palette .triangle-big { 
+                width: calc(var(--L) / 1.41421356 * 0.7); 
+                height: calc(var(--L) / 1.41421356 * 0.7); 
+            }
+            
+            #pieces-palette .triangle-medium { 
+                width: calc(var(--L) / 2 * 0.7); 
+                height: calc(var(--L) / 2 * 0.7); 
+            }
+            
+            #pieces-palette .triangle-small { 
+                width: calc(var(--L) / (2 * 1.41421356) * 0.7); 
+                height: calc(var(--L) / (2 * 1.41421356) * 0.7); 
+            }
+            
+            #pieces-palette .square { 
+                width: calc(var(--L) / (2 * 1.41421356) * 0.7); 
+                height: calc(var(--L) / (2 * 1.41421356) * 0.7); 
+            }
+            
+            #pieces-palette .parallelogram { 
+                width: calc(var(--L) / 2 * 0.7); 
+                height: calc(var(--L) / 4 * 0.7); 
+            }
 
             #game-container {
-                width: calc(var(--L) + 20px); /* Ajusta para L menor */
+                width: calc(var(--L) + 20px);
                 height: calc(var(--L) + 20px);
-                margin: 0 auto; /* Centraliza o container do jogo */
+                margin: 0 auto;
             }
+            
             #gabarito {
                 top: 10px;
                 left: 10px;
@@ -302,16 +341,18 @@
             .controls {
                 width: 100%;
                 padding: 15px;
-                box-sizing: border-box;
             }
+            
             .controls ul {
                 max-width: none;
                 text-align: center;
             }
+            
             .controls li {
                 display: inline-block;
                 margin: 0 10px 8px;
             }
+            
             .controls button {
                 width: calc(50% - 10px);
                 padding: 10px 15px;
@@ -323,8 +364,9 @@
                 right: 10px;
                 gap: 8px;
             }
+            
             #mobile-controls button {
-                width: 60px; /* Botões menores para telas muito pequenas */
+                width: 60px;
                 height: 60px;
                 font-size: 1.5em;
             }
@@ -332,15 +374,18 @@
 
         @media (max-width: 480px) {
             :root {
-                --L: 250px; /* Tamanho do jogo ainda menor */
+                --L: 250px;
             }
+            
             h1 { font-size: 1.5em; }
             h2 { font-size: 1.1em; }
+            
             #mobile-controls {
                 bottom: 5px;
                 right: 5px;
                 gap: 5px;
             }
+            
             #mobile-controls button {
                 width: 50px;
                 height: 50px;
@@ -350,38 +395,34 @@
     </style>
 </head>
 <body>
-
     <h1>Tangram Interativo</h1>
 
     <div id="game-area">
         <div id="pieces-palette" class="container">
             <h2>Peças</h2>
-            <!-- Peças são adicionadas aqui via JavaScript -->
         </div>
 
         <div id="game-container" class="container">
             <h2>Monte o Quadrado Aqui</h2>
             <div id="gabarito"></div>
             <div id="win-message">Parabéns!<br>Você conseguiu!</div>
-            <!-- Peças arrastadas vêm para cá -->
         </div>
         
         <div class="controls container">
-            <h2>Controles (Desktop)</h2>
+            <h2>Controles</h2>
             <ul>
-                <li><strong>Arrastar:</strong> Botão esquerdo do mouse.</li>
-                <li><strong>Girar 45°:</strong> Tecla 'R' (na peça selecionada).</li>
-                <li><strong>Inverter:</strong> Tecla 'F' (no paralelogramo selecionado).</li>
+                <li><strong>Arrastar:</strong> Mouse/toque</li>
+                <li><strong>Girar 45°:</strong> Tecla 'R' ou botão</li>
+                <li><strong>Inverter:</strong> Tecla 'F' ou botão</li>
             </ul>
             <button id="check-button">Verificar Encaixe</button>
             <button id="reset-button">Reiniciar Jogo</button>
         </div>
     </div>
 
-    <!-- Controles Mobile (Botões R e F) -->
     <div id="mobile-controls">
-        <button id="rotate-button" onclick="rotateSelectedPiece()">R</button>
-        <button id="flip-button" onclick="flipSelectedPiece()">F</button>
+        <button id="rotate-button">R</button>
+        <button id="flip-button">F</button>
     </div>
 
     <script>
@@ -395,42 +436,27 @@
             const rotateButton = document.getElementById('rotate-button');
             const flipButton = document.getElementById('flip-button');
 
-            // Obtém o valor de --L do CSS, que pode mudar com media queries
             const getLValue = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--L'));
             let L = getLValue();
-            let L_2 = L / 2;
-            let L_4 = L / 4;
-            const SQRT2 = Math.SQRT2; // 1.41421356...
             
-            // --- CONFIGURAÇÃO DA SOLUÇÃO DO JOGO ---
-            // As coordenadas (x, y) são o canto superior esquerdo da caixa delimitadora
-            // da peça *antes* de qualquer transformação, em relação ao canto do GABARITO (0,0).
             const piecesConfig = {
-                'tb1': { class: 'triangle-big', initial: { top: '50px', left: '0px' }, solution: { x: 0, y: L_2, r: 90, f: false } },
-                'tb2': { class: 'triangle-big', initial: { top: '50px', left: '50px' }, solution: { x: 0, y: 0, r: 0, f: false } },
-                'tm1': { class: 'triangle-medium', initial: { top: '200px', left: '40px' }, solution: { x: L_2, y: 0, r: 270, f: false } },
-                'ts1': { class: 'triangle-small', initial: { top: '350px', left: '10px' }, solution: { x: L_2 + L_4, y: L_2 + L_4, r: 180, f: false } },
-                'ts2': { class: 'triangle-small', initial: { top: '350px', left: '130px' }, solution: { x: L_2, y: L_2, r: 270, f: false } },
-                'sq1': { class: 'square', initial: { top: '220px', left: '130px' }, solution: { x: L_2 - L/(2*SQRT2)/2, y: L_2 - L/(2*SQRT2)/2, r: 45, f: false } },
-                'pr1': { class: 'parallelogram', initial: { top: '150px', left: '0px' }, solution: { x: L_4, y: L_2, r: 90, f: true } }
+                'tb1': { class: 'triangle-big', initial: { top: '50px', left: '0px' } },
+                'tb2': { class: 'triangle-big', initial: { top: '50px', left: '50px' } },
+                'tm1': { class: 'triangle-medium', initial: { top: '200px', left: '40px' } },
+                'ts1': { class: 'triangle-small', initial: { top: '350px', left: '10px' } },
+                'ts2': { class: 'triangle-small', initial: { top: '350px', left: '130px' } },
+                'sq1': { class: 'square', initial: { top: '220px', left: '130px' } },
+                'pr1': { class: 'parallelogram', initial: { top: '150px', left: '0px' } }
             };
             
             let selectedPiece = null;
             let isDragging = false;
-            let offsetX, offsetY; // Deslocamento do ponteiro para o canto superior esquerdo da peça
-            const pieceStates = new Map(); // Armazena { rotation, flipped, parent } para cada peça
+            let offsetX, offsetY;
+            const pieceStates = new Map();
 
-            // Atualiza L e seus derivados quando a janela é redimensionada
             window.addEventListener('resize', () => {
                 L = getLValue();
-                L_2 = L / 2;
-                L_4 = L / 4;
-                // Re-calcula as posições de solução se necessário, ou apenas usa os valores atualizados para verificação
-                // Para este jogo, as soluções são relativas a L, então os valores de solution.x/y não precisam ser re-calculados,
-                // mas a verificação de vitória usará os novos L_2, L_4 etc.
             });
-
-            // --- FUNÇÕES PRINCIPAIS DO JOGO ---
 
             function initializeGame() {
                 piecesPalette.innerHTML = '<h2>Peças</h2>';
@@ -442,7 +468,7 @@
                 }
                 selectedPiece = null;
                 isDragging = false;
-                pieceStates.clear(); // Limpa estados anteriores
+                pieceStates.clear();
 
                 for (const id in piecesConfig) {
                     const config = piecesConfig[id];
@@ -450,17 +476,16 @@
                     piece.id = id;
                     piece.className = `tangram-piece ${config.class}`;
                     
-                    // Aplica a posição inicial para a paleta
                     piece.style.top = config.initial.top;
                     piece.style.left = config.initial.left;
                     
                     pieceStates.set(piece, { rotation: 0, flipped: false, parent: 'palette' });
-                    applyTransform(piece); // Aplica a transformação inicial (sem rotação/inversão)
+                    applyTransform(piece);
 
                     piecesPalette.appendChild(piece);
                     piece.addEventListener('pointerdown', onPiecePointerDown);
                 }
-                updateButtonStates(); // Atualiza o estado dos botões R/F
+                updateButtonStates();
             }
 
             function applyTransform(piece) {
@@ -472,45 +497,36 @@
                 piece.style.transform = transform;
             }
 
-            // --- LÓGICA DE SELEÇÃO, ARRASTO E SOLTURA (POINTER EVENTS) ---
-
             function onPiecePointerDown(e) {
-                e.preventDefault(); // Previne ações padrão do navegador (seleção de texto, rolagem)
+                e.preventDefault();
 
                 const currentPiece = e.target.closest('.tangram-piece');
                 if (!currentPiece) return;
 
-                // Desseleciona a peça anterior se uma diferente for clicada
                 if (selectedPiece && selectedPiece !== currentPiece) {
                     selectedPiece.classList.remove('selected-piece');
                 }
                 
                 selectedPiece = currentPiece;
                 selectedPiece.classList.add('selected-piece');
-                updateButtonStates(); // Atualiza os botões R/F
+                updateButtonStates();
 
                 isDragging = true;
                 selectedPiece.classList.add('dragging');
                 
-                // Se a peça estiver na paleta, move-a para o container do jogo
                 const pieceState = pieceStates.get(selectedPiece);
                 if (pieceState.parent === 'palette') {
                     const paletteRect = piecesPalette.getBoundingClientRect();
                     const gameRect = gameContainer.getBoundingClientRect();
+                    const pieceRect = selectedPiece.getBoundingClientRect();
                     
-                    // Calcula a posição atual da peça em relação ao documento
-                    const pieceDocLeft = paletteRect.left + currentLeftInPalette;
-                    const pieceDocTop = paletteRect.top + currentTopInPalette;
-
-                    // Define a posição da peça em relação ao gameContainer
-                    selectedPiece.style.left = `${pieceDocLeft - gameRect.left}px`;
-                    selectedPiece.style.top = `${pieceDocTop - gameRect.top}px`;
+                    selectedPiece.style.left = `${pieceRect.left - gameRect.left}px`;
+                    selectedPiece.style.top = `${pieceRect.top - gameRect.top}px`;
                     
                     gameContainer.appendChild(selectedPiece);
                     pieceState.parent = 'game';
                 }
 
-                // Calcula o offset para o arrasto
                 const rect = selectedPiece.getBoundingClientRect();
                 offsetX = e.clientX - rect.left;
                 offsetY = e.clientY - rect.top;
@@ -520,6 +536,7 @@
             }
 
             function onDocumentPointerMove(e) {
+                if (!isDragging || !selectedPiece) return;
 
                 const gameRect = gameContainer.getBoundingClientRect();
                 let newLeft = e.clientX - gameRect.left - offsetX;
@@ -536,13 +553,14 @@
                 if (selectedPiece) {
                     selectedPiece.classList.remove('dragging');
                 }
+
                 document.removeEventListener('pointermove', onDocumentPointerMove);
                 document.removeEventListener('pointerup', onDocumentPointerUp);
             }
 
-            // Desseleciona a peça se clicar/tocar fora dela ou dos botões de controle
             document.addEventListener('pointerdown', (e) => {
                 const clickedPiece = e.target.closest('.tangram-piece');
+                const clickedControl = e.target.closest('#mobile-controls') || e.target.closest('.controls button');
 
                 if (selectedPiece && !clickedPiece && !clickedControl) {
                     selectedPiece.classList.remove('selected-piece');
@@ -551,7 +569,6 @@
                 }
             });
 
-            // --- FUNÇÕES PARA BOTÕES R E F ---
             window.rotateSelectedPiece = function() {
                 if (!selectedPiece) return;
                 const state = pieceStates.get(selectedPiece);
@@ -559,11 +576,16 @@
                 applyTransform(selectedPiece);
             };
 
+            rotateButton.addEventListener('click', window.rotateSelectedPiece);
+
             window.flipSelectedPiece = function() {
+                if (!selectedPiece) return;
                 const state = pieceStates.get(selectedPiece);
                 state.flipped = !state.flipped;
                 applyTransform(selectedPiece);
             };
+
+            flipButton.addEventListener('click', window.flipSelectedPiece);
 
             function updateButtonStates() {
                 if (selectedPiece) {
@@ -581,91 +603,119 @@
                 }
             }
 
-            // --- LÓGICA DE ROTAÇÃO E INVERSÃO PELO TECLADO (DESKTOP) ---
             document.addEventListener('keydown', (e) => {
                 if (!selectedPiece) return;
 
-                const state = pieceStates.get(selectedPiece);
-
+                if (e.key.toLowerCase() === 'r') {
                     e.preventDefault();
-                    state.rotation = (state.rotation + 45) % 360;
-                    applyTransform(selectedPiece);
-                } 
+                    window.rotateSelectedPiece();
+                } else if (e.key.toLowerCase() === 'f') {
                     e.preventDefault();
-                    state.flipped = !state.flipped;
-                    applyTransform(selectedPiece);
+                    window.flipSelectedPiece();
                 }
             });
 
-            // --- FUNÇÃO DE VERIFICAÇÃO DE VITÓRIA ---
+            // VALIDAÇÃO INTELIGENTE - Aceita qualquer combinação válida
             function checkWinCondition() {
-                const tolerancePos = 15; // Tolerância em pixels para a posição do centro
-                const toleranceRot = 10; // Tolerância em graus para a rotação
-                
                 const piecesInGameArea = Array.from(gameContainer.querySelectorAll('.tangram-piece'));
+                
                 if (piecesInGameArea.length !== 7) {
-                     alert('Por favor, mova todas as 7 peças para a área de montagem antes de verificar.');
-                     return;
+                    alert('Por favor, mova todas as 7 peças para a área de montagem antes de verificar.');
+                    return;
                 }
 
-                let allCorrect = true;
                 const gabaritoRect = document.getElementById('gabarito').getBoundingClientRect();
                 const gameRect = gameContainer.getBoundingClientRect();
                 
-                // Calcula a posição do gabarito em relação ao canto superior esquerdo (0,0) do gameContainer
-                const gabaritoOffsetX = gabaritoRect.left - gameRect.left;
-                const gabaritoOffsetY = gabaritoRect.top - gameRect.top;
+                // Cria canvas para análise geométrica
+                const canvas = document.createElement('canvas');
+                const size = Math.round(L);
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
+                // Preenche fundo com preto
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, size, size);
 
+                // Desenha cada peça no canvas
                 for (const piece of piecesInGameArea) {
                     const state = pieceStates.get(piece);
-                    const solution = piecesConfig[piece.id].solution;
                     
-                    // Obtém a posição atual da peça em relação ao gameContainer
-
-                    // Calcula o centro da peça atual em relação ao gameContainer
-                    const currentPieceCenterX = currentPieceLeft + piece.offsetWidth / 2;
-                    const currentPieceCenterY = currentPieceTop + piece.offsetHeight / 2;
-
-                    // Ajusta o centro atual para ser relativo ao canto superior esquerdo (0,0) do gabarito
-                    const currentCenterX_RelativeToGabarito = currentPieceCenterX - gabaritoOffsetX;
-                    const currentCenterY_RelativeToGabarito = currentPieceCenterY - gabaritoOffsetY;
-
-                    // Calcula o centro esperado da peça em relação ao canto superior esquerdo (0,0) do gabarito
-                    // solution.x/y já estão definidos em relação ao canto superior esquerdo do gabarito
-                    const solutionCenterX = solution.x + piece.offsetWidth / 2;
-                    const solutionCenterY = solution.y + piece.offsetHeight / 2;
-
-                    // 3. Compara os centros (posição)
-                    const posCorrect = Math.abs(currentCenterX_RelativeToGabarito - solutionCenterX) < tolerancePos && 
-                                       Math.abs(currentCenterY_RelativeToGabarito - solutionCenterY) < tolerancePos;
+                    const pieceLeft = parseFloat(piece.style.left);
+                    const pieceTop = parseFloat(piece.style.top);
                     
-                    // 4. Compara a rotação
-                    const normalizedCurrentRot = (state.rotation % 360 + 360) % 360;
-                    const normalizedSolutionRot = (solution.r % 360 + 360) % 360;
-                    const rotDiff = Math.abs(normalizedCurrentRot - normalizedSolutionRot);
+                    const gabaritoOffsetX = gabaritoRect.left - gameRect.left;
+                    const gabaritoOffsetY = gabaritoRect.top - gameRect.top;
+                    
+                    const x = pieceLeft - gabaritoOffsetX;
+                    const y = pieceTop - gabaritoOffsetY;
+                    
+                    const width = piece.offsetWidth;
+                    const height = piece.offsetHeight;
+                    
+                    ctx.save();
+                    ctx.translate(x + width/2, y + height/2);
+                    ctx.rotate(state.rotation * Math.PI / 180);
+                    if (state.flipped) {
+                        ctx.scale(-1, 1);
+                    }
+                    ctx.translate(-width/2, -height/2);
+                    
+                    ctx.beginPath();
+                    
+                    if (piece.classList.contains('triangle-big') || 
+                        piece.classList.contains('triangle-medium') || 
+                        piece.classList.contains('triangle-small')) {
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(width, 0);
+                        ctx.lineTo(0, height);
+                        ctx.closePath();
+                    } else if (piece.classList.contains('square')) {
+                        ctx.rect(0, 0, width, height);
+                    } else if (piece.classList.contains('parallelogram')) {
+                        ctx.moveTo(width * 0.25, 0);
+                        ctx.lineTo(width, 0);
+                        ctx.lineTo(width * 0.75, height);
+                        ctx.lineTo(0, height);
+                        ctx.closePath();
+                    }
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.restore();
+                }
 
-                    // 5. Compara o estado de inversão
-                    const flipCorrect = state.flipped === solution.f;
+                // Analisa cobertura
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const pixels = imageData.data;
+                let filledPixels = 0;
+                const totalPixels = size * size;
 
-                    // Se qualquer verificação falhar, a peça está incorreta.
-                        allCorrect = false;
-                        console.log(`--- Peça ${piece.id} Incorreta ---`);
-                        console.log(`Centro Esperado (rel. gabarito): (${solutionCenterX.toFixed(1)}, ${solutionCenterY.toFixed(1)})`);
-                        console.log(`Centro Atual (rel. gabarito): (${currentCenterX_RelativeToGabarito.toFixed(1)}, ${currentCenterY_RelativeToGabarito.toFixed(1)}) -> Pos OK: ${posCorrect}`);
-                        console.log(`Rotação Esperada: ${solution.r}°, Atual: ${state.rotation}° -> Rot OK: ${rotCorrect}`);
-                        console.log(`Inversão Esperada: ${solution.f}, Atual: ${state.flipped} -> Flip OK: ${flipCorrect}`);
-                        // Não usamos 'break' para que todas as peças incorretas sejam logadas no console, ajudando a depurar.
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i+1];
+                    const b = pixels[i+2];
+                    
+                    if (r > 128 && g > 128 && b > 128) {
+                        filledPixels++;
                     }
                 }
 
-                if (allCorrect) {
+                const coverage = (filledPixels / totalPixels) * 100;
+                
+                console.log(`Cobertura: ${coverage.toFixed(2)}%`);
+                
+                // Tolerância ampla: 85% a 115% (aceita pequenos gaps e sobreposições)
+                if (coverage >= 85 && coverage <= 115) {
                     winMessage.style.display = 'block';
+                    console.log(`✅ Vitória! Cobertura: ${coverage.toFixed(2)}%`);
                 } else {
-                    alert('Ainda não está correto. Continue tentando! (Verifique o console do navegador para dicas detalhadas)');
+                    alert(`Continue tentando! As peças precisam cobrir o quadrado completamente.\n(Cobertura atual: ${coverage.toFixed(1)}%)`);
+                    console.log(`❌ Cobertura: ${coverage.toFixed(2)}% (ideal: 85-115%)`);
                 }
             }
 
-            // --- INICIALIZAÇÃO E LISTENERS GERAIS ---
             resetButton.addEventListener('click', initializeGame);
             checkButton.addEventListener('click', checkWinCondition);
             
