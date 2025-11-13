@@ -816,13 +816,13 @@
                 
                 console.log(`Cobertura: ${coverage.toFixed(2)}%`);
                 
-                // Tolerância precisa: 99% a 101% (validação rigorosa de encaixe perfeito)
-                if (coverage >= 99 && coverage <= 101) {
+                // Tolerância precisa: 97% a 103% (validação rigorosa de encaixe perfeito)
+                if (coverage >= 97 && coverage <= 103) {
                     console.log(`✅ Vitória! Cobertura: ${coverage.toFixed(2)}%`);
                     showChristmasVictory();
                 } else {
                     alert(`Continue tentando! As peças precisam cobrir o quadrado completamente.\n(Cobertura atual: ${coverage.toFixed(1)}%)`);
-                    console.log(`❌ Cobertura: ${coverage.toFixed(2)}% (ideal: 99-101%)`);
+                    console.log(`❌ Cobertura: ${coverage.toFixed(2)}% (ideal: 97-103%)`);
                 }
             }
 
