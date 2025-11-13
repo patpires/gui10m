@@ -722,5 +722,208 @@
             initializeGame();
         });
     </script>
+</body>                    
+                    selectedPiece.style.left = `${pieceRect.left - gameRect.left}px`;
+                    selectedPiece.style.top = `${pieceRect.top - gameRect.top}px`;
+                    
+                    gameContainer.appendChild(selectedPiece);
+                    pieceState.parent = 'game';
+                }
+
+                const rect = selectedPiece.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+
+                document.addEventListener('pointermove', onDocumentPointerMove);
+                document.addEventListener('pointerup', onDocumentPointerUp);
+            }
+
+            function onDocumentPointerMove(e) {
+                if (!isDragging || !selectedPiece) return;
+
+                const gameRect = gameContainer.getBoundingClientRect();
+                let newLeft = e.clientX - gameRect.left - offsetX;
+                let newTop = e.clientY - gameRect.top - offsetY;
+
+                selectedPiece.style.left = `${newLeft}px`;
+                selectedPiece.style.top = `${newTop}px`;
+            }
+
+            function onDocumentPointerUp() {
+                if (!isDragging) return;
+
+                isDragging = false;
+                if (selectedPiece) {
+                    selectedPiece.classList.remove('dragging');
+                }
+
+                document.removeEventListener('pointermove', onDocumentPointerMove);
+                document.removeEventListener('pointerup', onDocumentPointerUp);
+            }
+
+            document.addEventListener('pointerdown', (e) => {
+                const clickedPiece = e.target.closest('.tangram-piece');
+                const clickedControl = e.target.closest('#mobile-controls') || e.target.closest('.controls button');
+
+                if (selectedPiece && !clickedPiece && !clickedControl) {
+                    selectedPiece.classList.remove('selected-piece');
+                    selectedPiece = null;
+                    updateButtonStates();
+                }
+            });
+
+            window.rotateSelectedPiece = function() {
+                if (!selectedPiece) return;
+                const state = pieceStates.get(selectedPiece);
+                state.rotation = (state.rotation + 45) % 360;
+                applyTransform(selectedPiece);
+            };
+
+            rotateButton.addEventListener('click', window.rotateSelectedPiece);
+
+            window.flipSelectedPiece = function() {
+                if (!selectedPiece) return;
+                const state = pieceStates.get(selectedPiece);
+                state.flipped = !state.flipped;
+                applyTransform(selectedPiece);
+            };
+
+            flipButton.addEventListener('click', window.flipSelectedPiece);
+
+            function updateButtonStates() {
+                if (selectedPiece) {
+                    mobileControls.classList.add('active');
+                    rotateButton.disabled = false;
+                    if (selectedPiece.id === 'pr1') {
+                        flipButton.disabled = false;
+                    } else {
+                        flipButton.disabled = true;
+                    }
+                } else {
+                    mobileControls.classList.remove('active');
+                    rotateButton.disabled = true;
+                    flipButton.disabled = true;
+                }
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (!selectedPiece) return;
+
+                if (e.key.toLowerCase() === 'r') {
+                    e.preventDefault();
+                    window.rotateSelectedPiece();
+                } else if (e.key.toLowerCase() === 'f') {
+                    e.preventDefault();
+                    window.flipSelectedPiece();
+                }
+            });
+
+            // VALIDAÇÃO INTELIGENTE - Aceita qualquer combinação válida
+            function checkWinCondition() {
+                const piecesInGameArea = Array.from(gameContainer.querySelectorAll('.tangram-piece'));
+                
+                if (piecesInGameArea.length !== 7) {
+                    alert('Por favor, mova todas as 7 peças para a área de montagem antes de verificar.');
+                    return;
+                }
+
+                const gabaritoRect = document.getElementById('gabarito').getBoundingClientRect();
+                const gameRect = gameContainer.getBoundingClientRect();
+                
+                // Cria canvas para análise geométrica
+                const canvas = document.createElement('canvas');
+                const size = Math.round(L);
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
+                // Preenche fundo com preto
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, size, size);
+
+                // Desenha cada peça no canvas
+                for (const piece of piecesInGameArea) {
+                    const state = pieceStates.get(piece);
+                    
+                    const pieceLeft = parseFloat(piece.style.left);
+                    const pieceTop = parseFloat(piece.style.top);
+                    
+                    const gabaritoOffsetX = gabaritoRect.left - gameRect.left;
+                    const gabaritoOffsetY = gabaritoRect.top - gameRect.top;
+                    
+                    const x = pieceLeft - gabaritoOffsetX;
+                    const y = pieceTop - gabaritoOffsetY;
+                    
+                    const width = piece.offsetWidth;
+                    const height = piece.offsetHeight;
+                    
+                    ctx.save();
+                    ctx.translate(x + width/2, y + height/2);
+                    ctx.rotate(state.rotation * Math.PI / 180);
+                    if (state.flipped) {
+                        ctx.scale(-1, 1);
+                    }
+                    ctx.translate(-width/2, -height/2);
+                    
+                    ctx.beginPath();
+                    
+                    if (piece.classList.contains('triangle-big') || 
+                        piece.classList.contains('triangle-medium') || 
+                        piece.classList.contains('triangle-small')) {
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(width, 0);
+                        ctx.lineTo(0, height);
+                        ctx.closePath();
+                    } else if (piece.classList.contains('square')) {
+                        ctx.rect(0, 0, width, height);
+                    } else if (piece.classList.contains('parallelogram')) {
+                        ctx.moveTo(width * 0.25, 0);
+                        ctx.lineTo(width, 0);
+                        ctx.lineTo(width * 0.75, height);
+                        ctx.lineTo(0, height);
+                        ctx.closePath();
+                    }
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // Analisa cobertura
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const pixels = imageData.data;
+                let filledPixels = 0;
+                const totalPixels = size * size;
+
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i+1];
+                    const b = pixels[i+2];
+                    
+                    if (r > 128 && g > 128 && b > 128) {
+                        filledPixels++;
+                    }
+                }
+
+                const coverage = (filledPixels / totalPixels) * 100;
+                
+                console.log(`Cobertura: ${coverage.toFixed(2)}%`);
+                
+                // Tolerância ampla: 85% a 115% (aceita pequenos gaps e sobreposições)
+                if (coverage >= 85 && coverage <= 115) {
+                    winMessage.style.display = 'block';
+                    console.log(`✅ Vitória! Cobertura: ${coverage.toFixed(2)}%`);
+                } else {
+                    alert(`Continue tentando! As peças precisam cobrir o quadrado completamente.\n(Cobertura atual: ${coverage.toFixed(1)}%)`);
+                    console.log(`❌ Cobertura: ${coverage.toFixed(2)}% (ideal: 85-115%)`);
+                }
+            }
+
+            resetButton.addEventListener('click', initializeGame);
+            checkButton.addEventListener('click', checkWinCondition);
+            
+            initializeGame();
+        });
+    </script>
 </body>
 </html>
