@@ -129,7 +129,7 @@
         
         #win-message {
             position: fixed;
-            top: 50%;
+            top: 25%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0.8);
             background: linear-gradient(135deg, #c41e3a 0%, #165b33 100%);
@@ -522,7 +522,6 @@
             </ul>
             <button id="check-button">Verificar Encaixe</button>
             <button id="reset-button">Reiniciar Jogo</button>
-            <button id="test-animation-button" style="background: linear-gradient(135deg, #c41e3a, #165b33); margin-top: 10px;">🎄 Testar Animação Natalina</button>
         </div>
     </div>
 
@@ -817,13 +816,13 @@
                 
                 console.log(`Cobertura: ${coverage.toFixed(2)}%`);
                 
-                // Tolerância ampla: 85% a 115% (aceita pequenos gaps e sobreposições)
-                if (coverage >= 85 && coverage <= 115) {
+                // Tolerância precisa: 99% a 101% (validação rigorosa de encaixe perfeito)
+                if (coverage >= 99 && coverage <= 101) {
                     console.log(`✅ Vitória! Cobertura: ${coverage.toFixed(2)}%`);
                     showChristmasVictory();
                 } else {
                     alert(`Continue tentando! As peças precisam cobrir o quadrado completamente.\n(Cobertura atual: ${coverage.toFixed(1)}%)`);
-                    console.log(`❌ Cobertura: ${coverage.toFixed(2)}% (ideal: 85-115%)`);
+                    console.log(`❌ Cobertura: ${coverage.toFixed(2)}% (ideal: 99-101%)`);
                 }
             }
 
@@ -920,23 +919,6 @@
                 initializeGame();
             });
             checkButton.addEventListener('click', checkWinCondition);
-            
-            // Botão de teste de animação (para demonstração)
-            const testAnimationButton = document.getElementById('test-animation-button');
-            if (testAnimationButton) {
-                testAnimationButton.addEventListener('click', () => {
-                    // Mover todas as peças para o game-container para simular jogo completo
-                    const pieces = piecesPalette.querySelectorAll('.tangram-piece');
-                    pieces.forEach((piece, index) => {
-                        gameContainer.appendChild(piece);
-                        piece.style.left = (50 + index * 30) + 'px';
-                        piece.style.top = (50 + index * 30) + 'px';
-                    });
-                    
-                    // Acionar animação
-                    setTimeout(() => showChristmasVictory(), 500);
-                });
-            }
             
             initializeGame();
         });
